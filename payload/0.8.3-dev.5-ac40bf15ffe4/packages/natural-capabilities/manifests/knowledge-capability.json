@@ -1,0 +1,121 @@
+{
+  "contract_version": 1,
+  "id": "knowledge",
+  "version": "1.1.0",
+  "title": "知识检索",
+  "operations": [
+    {
+      "name": "catalog",
+      "title": "查看知识范围",
+      "description": "查看本地语料版本、出处与覆盖限制。",
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {},
+        "title": "Catalog",
+        "type": "object"
+      },
+      "permission": "knowledge.read",
+      "output_kind": "knowledge.catalog",
+      "output_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "corpus": {
+            "additionalProperties": true,
+            "title": "Corpus",
+            "type": "object"
+          }
+        },
+        "required": [
+          "corpus"
+        ],
+        "title": "CatalogOutput",
+        "type": "object"
+      },
+      "timeout_ms": 45000
+    },
+    {
+      "name": "search",
+      "title": "检索有出处的知识",
+      "description": "查询本地版本化公开知识，返回来源URL、时间与摘要。知识咨询应使用此能力，不查业务数量。",
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "maxLength": 1000,
+            "minLength": 2,
+            "title": "Query",
+            "type": "string"
+          },
+          "as_of": {
+            "anyOf": [
+              {
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "适用日期YYYY-MM-DD；不传使用当前日期。",
+            "title": "As Of"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "Search",
+        "type": "object"
+      },
+      "permission": "knowledge.read",
+      "output_kind": "knowledge.evidence",
+      "output_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "artifact_ref": {
+            "title": "Artifact Ref",
+            "type": "string"
+          },
+          "matches": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Matches",
+            "type": "array"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "corpus_version": {
+            "title": "Corpus Version",
+            "type": "string"
+          },
+          "as_of": {
+            "title": "As Of",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          }
+        },
+        "required": [
+          "artifact_ref",
+          "matches",
+          "note",
+          "corpus_version",
+          "as_of",
+          "limitations"
+        ],
+        "title": "Output",
+        "type": "object"
+      },
+      "timeout_ms": 45000
+    }
+  ]
+}

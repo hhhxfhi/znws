@@ -1,0 +1,10 @@
+{
+  "name": "@natural-work/result-renderer",
+  "version": "0.5.1",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  }
+}

@@ -1,0 +1,1232 @@
+{
+  "contract_version": 1,
+  "id": "analysis",
+  "version": "2.3.0",
+  "title": "分析技能",
+  "operations": [
+    {
+      "name": "field_statistics",
+      "title": "基础字段统计",
+      "description": "对完整授权查询结果的指定字段计算合计、均值、极值、非空数或不同值数，无需业务指标映射。数值缺失不补零；不绕过已有比率和快照口径。",
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "result_ref": {
+            "title": "Result Ref",
+            "type": "string"
+          },
+          "column": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Column",
+            "type": "string"
+          },
+          "operation": {
+            "enum": [
+              "sum",
+              "mean",
+              "min",
+              "max",
+              "count",
+              "distinct_count"
+            ],
+            "title": "Operation",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result_ref",
+          "column",
+          "operation"
+        ],
+        "title": "FieldStatistics",
+        "type": "object"
+      },
+      "permission": "data.read",
+      "output_kind": "analysis.claims",
+      "output_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "default": "succeeded",
+            "enum": [
+              "succeeded",
+              "failed"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "artifact_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Artifact Ref"
+          },
+          "result_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Result Ref"
+          },
+          "claims": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Claims",
+            "type": "array"
+          },
+          "skills": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Skills"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "claims_total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Claims Total"
+          },
+          "branch_dependency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Branch Dependency"
+          },
+          "branch_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Branch Note"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Note"
+          }
+        },
+        "title": "Output",
+        "type": "object"
+      },
+      "timeout_ms": 45000
+    },
+    {
+      "name": "method",
+      "title": "执行完整分析方法",
+      "description": "对基础查询（SQL）结果执行 analysis_list 列出的方法或项目技能。单份SQL月序列环比和单行百分比阈值差用 analysis_compute。读取保留数据计算，不返回原始明细；缺输入拒绝，预测提供回测和区间，驱动分析不证明因果。",
+      "input_schema": {
+        "$defs": {
+          "Constraint": {
+            "additionalProperties": false,
+            "properties": {
+              "coefficients": {
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 100,
+                "minItems": 1,
+                "title": "Coefficients",
+                "type": "array"
+              },
+              "relation": {
+                "default": "lte",
+                "enum": [
+                  "lte",
+                  "eq"
+                ],
+                "title": "Relation",
+                "type": "string"
+              },
+              "bound": {
+                "title": "Bound",
+                "type": "number"
+              }
+            },
+            "required": [
+              "coefficients",
+              "bound"
+            ],
+            "title": "Constraint",
+            "type": "object"
+          },
+          "Options": {
+            "additionalProperties": false,
+            "properties": {
+              "threshold": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Threshold"
+              },
+              "benchmark": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Benchmark"
+              },
+              "target": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Target"
+              },
+              "top_n": {
+                "default": 5,
+                "maximum": 100,
+                "minimum": 1,
+                "title": "Top N",
+                "type": "integer"
+              },
+              "window": {
+                "default": 3,
+                "maximum": 60,
+                "minimum": 2,
+                "title": "Window",
+                "type": "integer"
+              },
+              "seasonal_period": {
+                "default": 12,
+                "maximum": 52,
+                "minimum": 2,
+                "title": "Seasonal Period",
+                "type": "integer"
+              },
+              "clusters": {
+                "default": 3,
+                "maximum": 10,
+                "minimum": 2,
+                "title": "Clusters",
+                "type": "integer"
+              },
+              "forecast_steps": {
+                "default": 3,
+                "maximum": 24,
+                "minimum": 1,
+                "title": "Forecast Steps",
+                "type": "integer"
+              },
+              "forecast_model": {
+                "default": "auto",
+                "description": "默认依据同窗口回测自动选择；无需业务用户选择技术算法。用户明确指定方法时再设定。",
+                "enum": [
+                  "auto",
+                  "naive",
+                  "arima",
+                  "ets",
+                  "linear",
+                  "snaive",
+                  "smean",
+                  "theta",
+                  "holt"
+                ],
+                "title": "Forecast Model",
+                "type": "string"
+              },
+              "forecast_until": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "预测目标期，与时间粒度一致。月度YYYY-MM，年度YYYY且只支持历史末年后的下一年。按真实历史末期计算步数。",
+                "title": "Forecast Until"
+              },
+              "forecast_grain": {
+                "default": "auto",
+                "enum": [
+                  "auto",
+                  "year",
+                  "quarter",
+                  "month",
+                  "week",
+                  "day"
+                ],
+                "title": "Forecast Grain",
+                "type": "string"
+              },
+              "arima_order": {
+                "items": {
+                  "type": "integer"
+                },
+                "maxItems": 3,
+                "minItems": 3,
+                "title": "Arima Order",
+                "type": "array"
+              },
+              "weights": {
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 20,
+                "title": "Weights",
+                "type": "array"
+              },
+              "scenario_multiplier": {
+                "default": 1.0,
+                "title": "Scenario Multiplier",
+                "type": "number"
+              },
+              "scenario_offset": {
+                "default": 0.0,
+                "title": "Scenario Offset",
+                "type": "number"
+              },
+              "constraints": {
+                "items": {
+                  "$ref": "#/$defs/Constraint"
+                },
+                "maxItems": 100,
+                "title": "Constraints",
+                "type": "array"
+              },
+              "bounds": {
+                "items": {
+                  "items": {
+                    "type": "number"
+                  },
+                  "type": "array"
+                },
+                "maxItems": 100,
+                "title": "Bounds",
+                "type": "array"
+              },
+              "maximize": {
+                "default": false,
+                "title": "Maximize",
+                "type": "boolean"
+              },
+              "chart_style": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "donut",
+                      "stacked",
+                      "percent_stacked"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "构成的图表样式：环形、堆叠或百分比堆叠；堆叠需要 dimensions",
+                "title": "Chart Style"
+              }
+            },
+            "title": "Options",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "result_ref": {
+            "title": "Result Ref",
+            "type": "string"
+          },
+          "method_id": {
+            "description": "analysis_list 列出的方法 id（matrix.编号）或项目技能 custom.标识",
+            "title": "Method Id",
+            "type": "string"
+          },
+          "method_version": {
+            "default": "1.0.0",
+            "title": "Method Version",
+            "type": "string"
+          },
+          "columns": {
+            "description": "数值字段；回归首列为因变量，相关需两列，效率需产出和投入两列",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Columns",
+            "type": "array"
+          },
+          "dimensions": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 6,
+            "title": "Dimensions",
+            "type": "array"
+          },
+          "time_column": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Time Column"
+          },
+          "comparison_result_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Comparison Result Ref"
+          },
+          "options": {
+            "$ref": "#/$defs/Options"
+          }
+        },
+        "required": [
+          "result_ref",
+          "method_id"
+        ],
+        "title": "Method",
+        "type": "object"
+      },
+      "permission": "data.read",
+      "output_kind": "analysis.claims",
+      "output_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "default": "succeeded",
+            "enum": [
+              "succeeded",
+              "failed"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "artifact_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Artifact Ref"
+          },
+          "result_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Result Ref"
+          },
+          "claims": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Claims",
+            "type": "array"
+          },
+          "skills": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Skills"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "claims_total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Claims Total"
+          },
+          "branch_dependency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Branch Dependency"
+          },
+          "branch_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Branch Note"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Note"
+          }
+        },
+        "title": "Output",
+        "type": "object"
+      },
+      "timeout_ms": 60000
+    },
+    {
+      "name": "list",
+      "title": "可用分析技能",
+      "description": "获取本项目已启用的分析方法、必要条件和与 analysis_compute 的分工。",
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {},
+        "title": "ListSkills",
+        "type": "object"
+      },
+      "permission": "data.read",
+      "output_kind": "analysis.catalog",
+      "output_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "default": "succeeded",
+            "enum": [
+              "succeeded",
+              "failed"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "artifact_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Artifact Ref"
+          },
+          "result_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Result Ref"
+          },
+          "claims": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Claims",
+            "type": "array"
+          },
+          "skills": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Skills"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "claims_total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Claims Total"
+          },
+          "branch_dependency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Branch Dependency"
+          },
+          "branch_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Branch Note"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Note"
+          }
+        },
+        "title": "Output",
+        "type": "object"
+      },
+      "timeout_ms": 45000
+    },
+    {
+      "name": "compute",
+      "title": "确定性计算",
+      "description": "SQL结果计算环比用month_over_month（填实际数值列column和月份列time_column，月份须连续），单行百分比阈值差用branch_compare（填实际百分比列column、threshold与comparison，如低于60%填60和<）。SQL占比、排名用share/rank填column。指标查询按完整事实计算：两个fact比较用compare_values（填baseline_fact_id与current_fact_id），单个fact阈值判断用branch_compare+threshold。多月/季度同比用aggregate_compare和baseline_periods/current_periods；单期用period_compare；合计用sum，已有sum可把claim_id交给compare_values。stated_value仅用于核对文本数值（reconcile）。分开查询同口径指标填comparison_result_ref，合计同比阈值填change_threshold。",
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "result_ref": {
+            "title": "Result Ref",
+            "type": "string"
+          },
+          "comparison_result_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "两个分开查询的同口径指标结果，比较时填另一份 result_ref；服务端校验来源、口径、单位和范围，禁止任意合并。",
+            "title": "Comparison Result Ref"
+          },
+          "column": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "SQL结果做share/rank/month_over_month/branch_compare时填写实际数值列，指标facts不填。SQL环比还需time_column；SQL单值阈值比较选择明确标注百分比的列，如数值76.03表示76.03%。",
+            "title": "Column"
+          },
+          "time_column": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "仅用于SQL结果的month_over_month。填写实际返回的月份列，值为YYYY-MM，同一范围内每个月恰有一行且月份连续。",
+            "title": "Time Column"
+          },
+          "operation": {
+            "description": "计算类型。两个fact数值比较用compare_values；单个fact与业务阈值比较用branch_compare+threshold；文本声称数值核对用reconcile+stated_value。",
+            "enum": [
+              "period_compare",
+              "aggregate_compare",
+              "share",
+              "rank",
+              "threshold_filter",
+              "branch_compare",
+              "reconcile",
+              "month_over_month",
+              "compare_values",
+              "cumulative_share",
+              "sum"
+            ],
+            "title": "Operation",
+            "type": "string"
+          },
+          "fact_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Fact Ids"
+          },
+          "sum_basis": {
+            "default": "non_overlapping",
+            "enum": [
+              "non_overlapping",
+              "category_occurrences"
+            ],
+            "title": "Sum Basis",
+            "type": "string"
+          },
+          "baseline_fact_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "compare_values的基期fact_id或本结果sum返回的claim_id；branch_compare在双fact差额比较时用fact_id。",
+            "title": "Baseline Fact Id"
+          },
+          "current_fact_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "本期fact_id或本结果sum的claim_id；两个引用须同时提供。多个期间合计比较优先用aggregate_compare。",
+            "title": "Current Fact Id"
+          },
+          "baseline_periods": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 120,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "aggregate_compare的完整基期列表，如[\"2024-04\",\"2024-05\",\"2024-06\"]。",
+            "title": "Baseline Periods"
+          },
+          "current_periods": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 120,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "aggregate_compare的完整本期列表，如[\"2025-04\",\"2025-05\",\"2025-06\"]；一次返回各期差额、变化率与合计比较，不先sum。",
+            "title": "Current Periods"
+          },
+          "baseline_period": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Baseline Period"
+          },
+          "current_period": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Current Period"
+          },
+          "threshold": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "业务阈值。用于branch_compare（单个fact或SQL单行百分比字段与业务阈值判断）或threshold_filter；百分比阈值60%填60。compare_values比较两个fact不使用threshold。",
+            "title": "Threshold"
+          },
+          "change_threshold": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "仅aggregate_compare：判断合计变化率是否满足comparison，例如同比超过10%填10、comparison填>。",
+            "title": "Change Threshold"
+          },
+          "comparison": {
+            "default": "<",
+            "enum": [
+              "<",
+              "<=",
+              ">",
+              ">=",
+              "=="
+            ],
+            "title": "Comparison",
+            "type": "string"
+          },
+          "stated_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "仅用于reconcile核对文本声称数值；比较两个fact用compare_values，单个fact与业务阈值比较用branch_compare+threshold，不要将stated_value当作threshold。",
+            "title": "Stated Value"
+          }
+        },
+        "required": [
+          "result_ref",
+          "operation"
+        ],
+        "title": "Compute",
+        "type": "object"
+      },
+      "permission": "data.read",
+      "output_kind": "analysis.claims",
+      "output_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "default": "succeeded",
+            "enum": [
+              "succeeded",
+              "failed"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "artifact_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Artifact Ref"
+          },
+          "result_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Result Ref"
+          },
+          "claims": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Claims",
+            "type": "array"
+          },
+          "skills": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Skills"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "claims_total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Claims Total"
+          },
+          "branch_dependency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Branch Dependency"
+          },
+          "branch_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Branch Note"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Note"
+          }
+        },
+        "title": "Output",
+        "type": "object"
+      },
+      "timeout_ms": 45000
+    },
+    {
+      "name": "run",
+      "title": "执行分析技能",
+      "description": "执行具名、版本化分析技能并产生可追溯结论。异常归因缺原因证据时仅完成异常识别。",
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "result_ref": {
+            "title": "Result Ref",
+            "type": "string"
+          },
+          "skill_id": {
+            "title": "Skill Id",
+            "type": "string"
+          },
+          "version": {
+            "default": "1.0.0",
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result_ref",
+          "skill_id"
+        ],
+        "title": "Skill",
+        "type": "object"
+      },
+      "permission": "data.read",
+      "output_kind": "analysis.claims",
+      "output_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "default": "succeeded",
+            "enum": [
+              "succeeded",
+              "failed"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "artifact_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Artifact Ref"
+          },
+          "result_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Result Ref"
+          },
+          "claims": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Claims",
+            "type": "array"
+          },
+          "skills": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Skills"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "claims_total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Claims Total"
+          },
+          "branch_dependency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Branch Dependency"
+          },
+          "branch_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Branch Note"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Note"
+          }
+        },
+        "title": "Output",
+        "type": "object"
+      },
+      "timeout_ms": 45000
+    }
+  ]
+}

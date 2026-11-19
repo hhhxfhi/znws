@@ -1,0 +1,116 @@
+:root{font:14px/1.6 -apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif;color:#25272a;background:#fff;--product-text:#25272a;--product-muted:#777;--product-border:#e5e5e5}*{box-sizing:border-box}body{margin:0}.nw-result{padding:16px;max-width:1200px;margin:auto}.nw-result header{display:flex;justify-content:space-between;align-items:center}.nw-result h2{font-size:16px;margin:0}.nw-result header span,.nw-meta{font-size:12px;color:#777}.nw-result nav{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:12px 0 18px}.nw-result button,.nw-result select{font:inherit;font-size:12px;padding:5px 10px;border:1px solid #ddd;background:#fff;border-radius:6px;color:inherit}.nw-result button[aria-pressed=true]{background:#f2f3f5}.nw-result a{font-size:12px;color:#285847}.nw-result pre{font-size:11px;white-space:pre-wrap;overflow-wrap:anywhere}.nw-result details{margin-top:18px;color:#777;font-size:12px}.nw-result .product-visualization{min-height:220px}.nw-result .product-pivot-canvas{width:100%}
+.nw-embedded{padding:0;--product-text:var(--dsw-alias-label-primary);--product-muted:var(--dsw-alias-label-secondary);--product-border:var(--dsw-alias-border-l2);color:var(--product-text);background:var(--dsw-alias-bg-layer-1)}
+.nw-embedded>header,.nw-embedded>.nw-meta,.nw-embedded>nav{display:none}
+:root:has(.nw-embedded){background:transparent;color:var(--dsw-alias-label-primary)}
+.nw-embedded details{margin:0;color:var(--product-muted)}
+/* The iframe is a persistent viewport sized from content, never a fixed blank panel. */
+html,body,#root{min-height:0;height:auto}
+.nw-embedded{background:transparent;max-width:none;overflow:hidden}
+.nw-result .product-visualization{height:auto;min-height:0;overflow:visible}
+.nw-result .product-table-wrap{max-height:520px;overflow:auto}
+/* Clip the inactive, inert table without discarding its column layout. */
+.nw-result .nw-table-panel[hidden]{display:block;block-size:0;overflow:hidden;overflow:clip}
+/* Keep the chart disclosure with the chart tab while sharing its plain table. */
+.nw-result .nw-table-panel[data-table-tab=data] .product-visualization-heading{display:none}
+.nw-result .product-table-wrap table{width:100%;font-variant-numeric:tabular-nums}
+.nw-result .product-table-wrap th{font-weight:500;color:var(--product-muted)}
+.nw-result .product-table-wrap th,.nw-result .product-table-wrap td{padding:10px 12px;max-width:280px;overflow-wrap:anywhere}
+.nw-result .product-gauge-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));gap:16px;justify-items:center;padding:12px 0}
+.nw-result .product-gauge-card{width:min(100%,320px)}
+.nw-result .product-gauge-card svg{display:block;width:100%;height:auto}
+.nw-result .product-radar{align-items:center}
+.nw-result .product-radar svg{max-width:360px}
+.nw-result .product-pie-chart{justify-content:center;padding:8px 0}
+.nw-result .product-pie-chart svg{width:min(280px,100%);height:auto;flex-shrink:1}
+.nw-result .product-pie-legend{min-width:min(180px,100%);flex:0 1 240px}
+.nw-result svg{max-width:100%}
+.nw-result .product-bar-row{grid-template-columns:minmax(60px,100px) minmax(0,1fr) 64px}
+.nw-result .product-column-chart{height:230px}
+.nw-result .product-scatter-chart{min-height:0}
+.nw-result .product-pivot-wrap{min-height:0;max-height:520px;overflow:auto}
+.nw-result .nw-receipt pre{max-height:460px;overflow:auto}
+.nw-result pre{margin:0;padding:12px 0}
+.nw-result [role=note],.nw-result .nw-receipt-note,.nw-result .product-visual-note,.nw-result .product-pivot-note{color:var(--product-muted);font-size:12px;line-height:1.6}
+.nw-result [role=alert]{color:var(--dsw-alias-state-error-primary,#9b2c2c)}
+.nw-result .nw-receipt-note{margin:4px 0}
+.nw-result .product-visual-note,.nw-result .product-pivot-note{background:none;border:0;padding:0}
+.nw-result .product-kpi-grid{padding:8px 0}
+.nw-result .product-kpi-card{background:transparent}
+@media(max-width:420px){.nw-result .product-bar-row{grid-template-columns:72px minmax(0,1fr) 48px;gap:6px}.nw-result .product-kpi-grid{grid-template-columns:1fr}.nw-result .product-pie-legend{flex-basis:100%}}
+
+/* Keep labels inside the measured viewport; long charts scroll, never drop categories. */
+.nw-result .product-column-chart{min-height:282px;height:auto;padding:12px 4px 8px;align-items:flex-start;gap:12px}
+.nw-result .product-column-row{display:grid;justify-items:center;height:auto;flex:1 0 auto;width:52px;min-width:min-content;grid-template-rows:auto 196px minmax(38px,auto)}
+.nw-result .product-column-row .product-series-track{height:100%;align-self:end}
+.nw-result .product-column-row .product-series-value{font-variant-numeric:tabular-nums;align-self:end;text-align:center;white-space:nowrap}
+.nw-result .product-column-row .product-series-value small{margin-left:3px;color:var(--product-muted)}
+.nw-result .product-column-row .product-series-label{align-self:start;white-space:normal;overflow-wrap:anywhere;line-height:18px;text-align:center}
+.nw-result .product-grouped-chart{max-height:500px;overflow:auto}
+.nw-result .product-grouped-legend{flex-wrap:wrap}
+.nw-result .product-table-wrap,.nw-result .product-bar-wrap{scrollbar-gutter:stable}
+
+.nw-verified-claims{font-size:12px;line-height:1.6;margin-top:12px;border-top:1px solid var(--product-border);overflow-wrap:anywhere}.nw-verified-claims h3{font-size:13px;font-weight:500}.nw-verified-claims p{margin:6px 0}
+.nw-analysis-delivery{font-size:12px;line-height:1.6;margin-top:12px;border-top:1px solid var(--product-border)}.nw-analysis-delivery h3{font-size:13px;font-weight:500}.nw-analysis-delivery p{margin:8px 0}
+
+/* Preserve SVG label sizes instead of shrinking them below readable text size. */
+.nw-chart-viewport{max-width:100%;overflow-x:auto;scrollbar-gutter:stable}
+.nw-chart-viewport--table{overflow-x:visible;scrollbar-gutter:auto}
+.nw-chart-viewport .product-line-chart{min-width:0;width:100%}
+.nw-chart-viewport .product-scatter-chart{min-width:600px}
+.nw-chart-viewport .product-treemap-svg,.nw-chart-viewport .product-histogram-svg,.nw-chart-viewport .product-waterfall-svg,.nw-chart-viewport .product-boxplot-svg{min-width:640px}
+.nw-chart-viewport .product-funnel-svg{min-width:560px}
+.nw-result .product-line-chart svg,.nw-result .product-scatter-chart,.nw-result .product-histogram-svg,.nw-result .product-waterfall-svg,.nw-result .product-boxplot-svg{max-height:420px;height:auto}
+.nw-result .product-table-wrap td{white-space:nowrap;overflow-wrap:normal;max-width:none}
+.nw-result .product-table-wrap th{min-width:96px;word-break:normal;overflow-wrap:normal}
+.nw-scrolling-note{color:var(--product-muted);font-size:12px;margin:4px 0 8px}
+
+.nw-result .product-treemap .product-pie-legend{max-height:240px;overflow:auto;display:flex;flex-direction:column;flex-basis:auto}.nw-result .product-funnel{max-height:500px;overflow:auto}.nw-chart-viewport:focus-visible,.nw-result .product-table-wrap:focus-visible{outline:2px solid var(--dsw-alias-border-active,#769dec);outline-offset:-2px}
+
+/* 0.6.2: an uncomputable value reads as text, not as a blank cell. */
+.product-cell-unknown{color:var(--product-muted);font-size:12px}
+/* 0.6.2: the column cell must span the row (an implicit auto column collapsed to the
+   label width and pushed bars to one side); few categories stay centred, not spread
+   to both edges; bars are flat-topped columns on a baseline, not grey pills. */
+.nw-result .product-column-chart{justify-content:safe center}
+.nw-result .product-column-row{grid-template-columns:minmax(min-content,1fr);max-width:160px}
+.nw-result .product-column-row .product-series-track:not(.product-series-track--signed){background:transparent;border-radius:0;border-bottom:1px solid var(--product-border);max-width:56px}
+.nw-result .product-column-row .product-series-track i{border-radius:6px 6px 0 0}
+
+.nw-forecast{margin:8px 0 16px;padding:0 0 12px;border-bottom:1px solid var(--product-border,#e5e5e5);min-width:0}
+.nw-forecast h3{margin:0 0 8px;font-size:14px;font-weight:600}
+.nw-forecast-summary,.nw-forecast-legend{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 16px;margin:0 0 8px}
+.nw-forecast-summary span,.nw-forecast-legend,.nw-forecast-meta{font-size:12px;color:var(--product-muted,#62656d)}
+.nw-forecast-legend span{display:inline-flex;align-items:center;gap:6px}
+.nw-forecast-legend i{display:inline-block;width:20px}
+.nw-forecast-key-history{border-top:2px solid #6b7280}
+.nw-forecast-key-prediction{border-top:2px dashed #7c3aed}
+.nw-forecast-key-interval{height:8px;background:#ede9fe}
+.nw-forecast-viewport{width:100%;overflow-x:auto;scrollbar-gutter:stable}
+.nw-forecast-viewport:focus-visible{outline:2px solid var(--dsw-alias-border-active,#769dec);outline-offset:-2px}
+.nw-result .nw-forecast svg{display:block;max-width:none}
+.nw-forecast svg text{fill:var(--product-muted,#62656d);font-size:11px}
+.nw-forecast-grid{stroke:var(--product-border,#e5e5e5)}
+.nw-forecast-zero{stroke:var(--product-muted,#62656d);stroke-opacity:.65;stroke-dasharray:3 3}
+.nw-forecast-origin{stroke:var(--product-muted,#6b7280);stroke-opacity:.65;stroke-dasharray:2 3}
+.nw-forecast-history{fill:none;stroke:#6b7280;stroke-width:2}
+.nw-forecast-prediction{fill:none;stroke:#7c3aed;stroke-width:2}
+.nw-forecast-interval{fill:#c4b5fd;fill-opacity:.32}
+.nw-forecast-single-interval{stroke:#c4b5fd;stroke-opacity:.75;stroke-width:7;stroke-linecap:round}
+.nw-forecast-point{fill:#7c3aed}
+.nw-forecast-meta{margin:3px 0}
+.nw-result .nw-forecast .nw-forecast-details{margin:8px 0}
+.nw-forecast-details summary{cursor:pointer}
+.nw-forecast-training{margin:8px 0 4px}
+.nw-forecast-training summary{cursor:pointer;font-size:12px;color:var(--product-muted,#62656d)}
+.nw-forecast-training[open] summary{margin-bottom:8px}
+.nw-analysis-more{margin:4px 0}
+.nw-analysis-more summary{cursor:pointer}
+.nw-analysis-more[open] summary{margin-bottom:4px}
+.nw-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.nw-skel-bar{border-radius:6px;background:linear-gradient(90deg,rgba(128,128,128,.08) 25%,rgba(128,128,128,.16) 50%,rgba(128,128,128,.08) 75%);background-size:200% 100%;animation:nw-shimmer 1.4s ease-in-out infinite}
+@keyframes nw-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@media(prefers-reduced-motion:reduce){.nw-skel-bar{animation:none}}
+.nw-forecast-holdout{fill:rgba(107,114,128,.08);stroke:none}
+.nw-forecast-zero{stroke:var(--product-muted,#6b7280);stroke-opacity:.5;stroke-width:1;stroke-dasharray:1 3}
+.nw-forecast-history-point{fill:#6b7280;stroke:none}
+.nw-forecast-grade{color:#b45309;font-weight:600}

@@ -1,0 +1,3 @@
+- insert:
+    - id: natural-ask-data
+      name: '@natural-work/ask-data'

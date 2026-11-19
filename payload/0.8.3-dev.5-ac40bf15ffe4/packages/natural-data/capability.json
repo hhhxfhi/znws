@@ -1,0 +1,6655 @@
+{
+  "contract_version": 1,
+  "id": "data",
+  "version": "2.4.0",
+  "title": "问数",
+  "operations": [
+    {
+      "name": "catalog",
+      "title": "查看数据目录",
+      "description": "发现项目授权的数据源、字段、业务口径，生成短期有效的目录引用。查询前必须调用。",
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "entry_ref": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "按目录 entry_ref 读取完整业务条目，必须带 source_id；表也可用 table:<完整表名>。长条目续页原样使用回执 read_request",
+            "title": "Entry Ref"
+          },
+          "entry_version": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "原样使用该条目 read_request.entry_version；完整旧指纹也可读取",
+            "title": "Entry Version"
+          },
+          "entry_offset": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Entry Offset",
+            "type": "integer"
+          },
+          "entry_limit": {
+            "default": 6000,
+            "maximum": 6000,
+            "minimum": 1,
+            "title": "Entry Limit",
+            "type": "integer"
+          },
+          "source_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "可选的数据源 ID",
+            "title": "Source Id"
+          },
+          "source_offset": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Source Offset",
+            "type": "integer"
+          },
+          "source_limit": {
+            "default": 16,
+            "description": "每页来源数，最多32，超出按32处理",
+            "minimum": 1,
+            "title": "Source Limit",
+            "type": "integer"
+          },
+          "table_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "查看该来源的授权表字段，优先用目录中的完整表名；该来源内唯一的裸表名也可用",
+            "title": "Table Name"
+          },
+          "table_offset": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Table Offset",
+            "type": "integer"
+          },
+          "table_limit": {
+            "default": 200,
+            "description": "每页表数，默认200：表清单只含表名，放得下就一次列全；超出按200处理",
+            "minimum": 1,
+            "title": "Table Limit",
+            "type": "integer"
+          },
+          "column_offset": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Column Offset",
+            "type": "integer"
+          },
+          "column_limit": {
+            "default": 50,
+            "description": "每页字段数，最多80",
+            "minimum": 1,
+            "title": "Column Limit",
+            "type": "integer"
+          },
+          "metric_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "可选指标ID，配合 source_id 获取完整口径",
+            "title": "Metric Id"
+          },
+          "metric_offset": {
+            "default": 0,
+            "minimum": 0,
+            "title": "Metric Offset",
+            "type": "integer"
+          },
+          "metric_limit": {
+            "default": 8,
+            "description": "每页指标数，最多16",
+            "minimum": 1,
+            "title": "Metric Limit",
+            "type": "integer"
+          },
+          "view": {
+            "default": "full",
+            "description": "metrics：只查指标，按question/metric_group返回最多10个完整口径",
+            "enum": [
+              "full",
+              "metrics"
+            ],
+            "title": "View",
+            "type": "string"
+          },
+          "metric_group": {
+            "anyOf": [
+              {
+                "maxLength": 60,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "指标分组名，见目录metric_groups",
+            "title": "Metric Group"
+          },
+          "question": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "用户的原始问题或要找的业务名词。传入后只返回最相关的业务术语(caliber_matches)和示例(example_matches)；不传时按本轮用户问题检索",
+            "title": "Question"
+          }
+        },
+        "title": "Catalog",
+        "type": "object"
+      },
+      "permission": "data.read",
+      "output_kind": "data.catalog",
+      "output_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "sources": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Sources",
+            "type": "array"
+          },
+          "catalog_view": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Catalog View"
+          },
+          "project": {
+            "title": "Project",
+            "type": "string"
+          },
+          "catalog_ref": {
+            "title": "Catalog Ref",
+            "type": "string"
+          },
+          "expires_in_seconds": {
+            "title": "Expires In Seconds",
+            "type": "integer"
+          },
+          "temporal_context": {
+            "additionalProperties": true,
+            "title": "Temporal Context",
+            "type": "object"
+          },
+          "readiness": {
+            "additionalProperties": true,
+            "title": "Readiness",
+            "type": "object"
+          },
+          "same_name_metrics": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Same Name Metrics"
+          }
+        },
+        "required": [
+          "sources",
+          "project",
+          "catalog_ref",
+          "expires_in_seconds",
+          "temporal_context",
+          "readiness"
+        ],
+        "title": "CatalogOutput",
+        "type": "object"
+      },
+      "timeout_ms": 45000
+    },
+    {
+      "name": "plan",
+      "title": "准备兼容指标计划",
+      "description": "仅当当前来源目录metric_definitions包含该指标时使用。新客户无此定义时使用基础查询或已发布结构化指标。绑定任务最新修订，条件必须一致。",
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "catalog_ref": {
+            "title": "Catalog Ref",
+            "type": "string"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          },
+          "metric": {
+            "description": "仅选择当前来源目录metric_definitions中的ID；自定义指标使用data_semantic_plan。",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Metric",
+            "type": "string"
+          },
+          "periods": {
+            "description": "明确的年份或月份，如2025或2025-12；不要省略时间。同比传两个年份，月趋势传12个月。快照年度取12月。",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 36,
+            "minItems": 1,
+            "title": "Periods",
+            "type": "array"
+          },
+          "group_by": {
+            "default": "none",
+            "description": "city所有指标可用；grade只证书/专业；profession和profession_grade只professional_units；category只map_reviews；reason只rejection_count；service_type只政务；ownership只证书/专业。",
+            "enum": [
+              "none",
+              "city",
+              "grade",
+              "profession",
+              "profession_grade",
+              "category",
+              "ownership",
+              "reason",
+              "service_type"
+            ],
+            "title": "Group By",
+            "type": "string"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "City"
+          },
+          "grade": {
+            "anyOf": [
+              {
+                "enum": [
+                  "甲级",
+                  "乙级"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Grade"
+          },
+          "profession": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Profession"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "enum": [
+                  "省级",
+                  "部委托"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Category"
+          },
+          "detail": {
+            "default": false,
+            "description": "仅需名单/案卷/项目明细时true；平均完成率先detail=false，低于阈值名单另取detail=true，不额外取全部或改阈值。",
+            "title": "Detail",
+            "type": "boolean"
+          },
+          "below": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "对指标值过滤严格小于；例低于60%",
+            "title": "Below"
+          },
+          "top_n": {
+            "anyOf": [
+              {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Top N"
+          },
+          "cumulative_percent": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0,
+                "maximum": 100,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "按值降序取累计份额达到阈值的最小前缀，边界并列全部纳入",
+            "title": "Cumulative Percent"
+          },
+          "question": {
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Question",
+            "type": "string"
+          },
+          "chart_type": {
+            "anyOf": [
+              {
+                "enum": [
+                  "table",
+                  "kpi",
+                  "bar",
+                  "column",
+                  "grouped-bar",
+                  "stacked-bar",
+                  "percent-stacked-bar",
+                  "line",
+                  "area",
+                  "pie",
+                  "donut",
+                  "scatter",
+                  "bubble",
+                  "heatmap",
+                  "treemap",
+                  "histogram",
+                  "radar",
+                  "funnel",
+                  "gauge",
+                  "waterfall",
+                  "boxplot",
+                  "alert-table",
+                  "pivot-table"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "柱状图/柱形图使用column（竖向）；条形图使用bar（横向）；指标卡kpi，仪表盘gauge。按用户明确要求选择，不能混用名称。",
+            "title": "Chart Type"
+          },
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          },
+          "task_revision": {
+            "minimum": 1,
+            "title": "Task Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "catalog_ref",
+          "source_id",
+          "metric",
+          "periods",
+          "question",
+          "task_id",
+          "task_revision"
+        ],
+        "title": "PlanReport",
+        "type": "object"
+      },
+      "permission": "data.read",
+      "output_kind": "data.bound-plan",
+      "output_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "plan_ref": {
+            "title": "Plan Ref",
+            "type": "string"
+          },
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          },
+          "task_revision": {
+            "title": "Task Revision",
+            "type": "integer"
+          },
+          "metric_contract": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Metric Contract"
+          },
+          "note": {
+            "default": "计划已绑定任务修订；执行时仍校验最新条件。",
+            "title": "Note",
+            "type": "string"
+          }
+        },
+        "required": [
+          "plan_ref",
+          "task_id",
+          "task_revision"
+        ],
+        "title": "PlanOutput",
+        "type": "object"
+      },
+      "timeout_ms": 45000
+    },
+    {
+      "name": "plan_query",
+      "title": "准备基础查询计划",
+      "description": "新数据库完成授权即可使用，无需预设指标。按真实目录编写只读SQL，任务只保存query，不要求metric或periods。已选择的业务指标和旧映射表仍走指标计划。",
+      "input_schema": {
+        "$defs": {
+          "Alert": {
+            "additionalProperties": false,
+            "properties": {
+              "column": {
+                "title": "Column",
+                "type": "string"
+              },
+              "op": {
+                "enum": [
+                  ">",
+                  ">=",
+                  "<",
+                  "<=",
+                  "==",
+                  "!="
+                ],
+                "title": "Op",
+                "type": "string"
+              },
+              "threshold": {
+                "title": "Threshold",
+                "type": "number"
+              },
+              "severity": {
+                "default": "warn",
+                "enum": [
+                  "warn",
+                  "error"
+                ],
+                "title": "Severity",
+                "type": "string"
+              }
+            },
+            "required": [
+              "column",
+              "op",
+              "threshold"
+            ],
+            "title": "Alert",
+            "type": "object"
+          },
+          "Parameter": {
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "title": "Name",
+                "type": "string"
+              },
+              "type": {
+                "enum": [
+                  "string",
+                  "integer",
+                  "number",
+                  "boolean",
+                  "date",
+                  "datetime"
+                ],
+                "title": "Type",
+                "type": "string"
+              },
+              "value": {
+                "title": "Value",
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "type",
+              "value"
+            ],
+            "title": "Parameter",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "catalog_ref": {
+            "description": "data_catalog 返回的目录产物引用；必须先获取真实目录",
+            "minLength": 1,
+            "title": "Catalog Ref",
+            "type": "string"
+          },
+          "source_id": {
+            "description": "目录中已授权的数据源 ID",
+            "minLength": 1,
+            "title": "Source Id",
+            "type": "string"
+          },
+          "sql": {
+            "description": "只读 SQL，使用目录里的准确表名、字段和数据库方言",
+            "maxLength": 50000,
+            "minLength": 1,
+            "title": "Sql",
+            "type": "string"
+          },
+          "title": {
+            "description": "分析的中文标题",
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "question": {
+            "description": "用户的原始问题，保留指标口径与图表诉求",
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Question",
+            "type": "string"
+          },
+          "chart_type": {
+            "anyOf": [
+              {
+                "enum": [
+                  "table",
+                  "kpi",
+                  "bar",
+                  "column",
+                  "grouped-bar",
+                  "stacked-bar",
+                  "percent-stacked-bar",
+                  "line",
+                  "area",
+                  "pie",
+                  "donut",
+                  "scatter",
+                  "bubble",
+                  "heatmap",
+                  "treemap",
+                  "histogram",
+                  "radar",
+                  "funnel",
+                  "gauge",
+                  "waterfall",
+                  "boxplot",
+                  "alert-table",
+                  "pivot-table"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "柱状图/柱形图使用column（竖向）；条形图使用bar（横向）；指标卡kpi，仪表盘gauge。",
+            "title": "Chart Type"
+          },
+          "alert_rules": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/$defs/Alert"
+                },
+                "maxItems": 30,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Alert Rules"
+          },
+          "parameters": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/$defs/Parameter"
+                },
+                "maxItems": 100,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Parameters"
+          },
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          },
+          "task_revision": {
+            "minimum": 1,
+            "title": "Task Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "catalog_ref",
+          "source_id",
+          "sql",
+          "title",
+          "question",
+          "task_id",
+          "task_revision"
+        ],
+        "title": "PlanQuery",
+        "type": "object"
+      },
+      "permission": "data.read",
+      "output_kind": "data.bound-plan",
+      "output_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "plan_ref": {
+            "title": "Plan Ref",
+            "type": "string"
+          },
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          },
+          "task_revision": {
+            "title": "Task Revision",
+            "type": "integer"
+          },
+          "metric_contract": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Metric Contract"
+          },
+          "note": {
+            "default": "计划已绑定任务修订；执行时仍校验最新条件。",
+            "title": "Note",
+            "type": "string"
+          }
+        },
+        "required": [
+          "plan_ref",
+          "task_id",
+          "task_revision"
+        ],
+        "title": "PlanOutput",
+        "type": "object"
+      },
+      "timeout_ms": 45000
+    },
+    {
+      "name": "semantic_plan",
+      "title": "准备复杂指标计划",
+      "description": "选择目录内已发布的semantic_metrics指标及版本，支持多操作数、复合关联、快照、加权和比例。任务semantic字段保存source_id、metric_id、metric_version、periods、group_by、filters的JSON。不得自行编造口径。",
+      "input_schema": {
+        "$defs": {
+          "Filter": {
+            "additionalProperties": false,
+            "properties": {
+              "dimension": {
+                "title": "Dimension",
+                "type": "string"
+              },
+              "op": {
+                "enum": [
+                  "eq",
+                  "ne",
+                  "gt",
+                  "gte",
+                  "lt",
+                  "lte",
+                  "in"
+                ],
+                "title": "Op",
+                "type": "string"
+              },
+              "values": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 100,
+                "minItems": 1,
+                "title": "Values",
+                "type": "array"
+              }
+            },
+            "required": [
+              "dimension",
+              "op",
+              "values"
+            ],
+            "title": "Filter",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "catalog_ref": {
+            "title": "Catalog Ref",
+            "type": "string"
+          },
+          "source_id": {
+            "title": "Source Id",
+            "type": "string"
+          },
+          "metric_id": {
+            "title": "Metric Id",
+            "type": "string"
+          },
+          "metric_version": {
+            "title": "Metric Version",
+            "type": "string"
+          },
+          "periods": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 60,
+            "title": "Periods",
+            "type": "array"
+          },
+          "group_by": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 6,
+            "title": "Group By",
+            "type": "array"
+          },
+          "filters": {
+            "items": {
+              "$ref": "#/$defs/Filter"
+            },
+            "maxItems": 30,
+            "title": "Filters",
+            "type": "array"
+          },
+          "title": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "question": {
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Question",
+            "type": "string"
+          },
+          "chart_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Chart Type"
+          },
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          },
+          "task_revision": {
+            "minimum": 1,
+            "title": "Task Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "catalog_ref",
+          "source_id",
+          "metric_id",
+          "metric_version",
+          "title",
+          "question",
+          "task_id",
+          "task_revision"
+        ],
+        "title": "SemanticPlan",
+        "type": "object"
+      },
+      "permission": "data.read",
+      "output_kind": "data.bound-plan",
+      "output_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "plan_ref": {
+            "title": "Plan Ref",
+            "type": "string"
+          },
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          },
+          "task_revision": {
+            "title": "Task Revision",
+            "type": "integer"
+          },
+          "metric_contract": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Metric Contract"
+          },
+          "note": {
+            "default": "计划已绑定任务修订；执行时仍校验最新条件。",
+            "title": "Note",
+            "type": "string"
+          }
+        },
+        "required": [
+          "plan_ref",
+          "task_id",
+          "task_revision"
+        ],
+        "title": "PlanOutput",
+        "type": "object"
+      },
+      "timeout_ms": 45000
+    },
+    {
+      "name": "report",
+      "title": "按指标查询",
+      "description": "优先使用版本化指标查询：明确期间、分组、筛选、名单和阈值。返回维度与数值配对事实；仅已登记数据源可用，不得跨源替代。",
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          },
+          "task_revision": {
+            "minimum": 1,
+            "title": "Task Revision",
+            "type": "integer"
+          },
+          "plan_ref": {
+            "description": "data_plan 或 data_plan_query 返回的不可变计划引用；不重复传SQL或指标条件",
+            "title": "Plan Ref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id",
+          "task_revision",
+          "plan_ref"
+        ],
+        "title": "Execute",
+        "type": "object"
+      },
+      "permission": "data.read",
+      "output_kind": "data.dataset",
+      "output_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "metric_hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Metric Hint"
+          },
+          "validation": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Validation"
+          },
+          "result_lineage": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Result Lineage"
+          },
+          "inspection_reconciliation": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Inspection Reconciliation"
+          },
+          "analysis_options": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Analysis Options"
+          },
+          "business_project": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Business Project"
+          },
+          "answer_contract": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Answer Contract"
+          },
+          "detail_summary": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Detail Summary"
+          },
+          "facts": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Facts"
+          },
+          "metric_contract": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Metric Contract"
+          },
+          "source_provenance": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Source Provenance"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Reason Code"
+          },
+          "result_ref": {
+            "title": "Result Ref",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "succeeded",
+              "failed",
+              "cancelled",
+              "execution_unknown",
+              "running"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Title"
+          },
+          "row_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Row Count"
+          },
+          "truncated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Truncated"
+          },
+          "quality": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Quality"
+          },
+          "metrics": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Metrics"
+          },
+          "receipt": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Receipt"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Error"
+          },
+          "visualization": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Visualization"
+          },
+          "visualization_options": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Visualization Options"
+          },
+          "analysis_scope": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Analysis Scope"
+          },
+          "operators": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Operators"
+          },
+          "artifact_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Artifact Ref"
+          },
+          "plan_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Plan Ref"
+          },
+          "analysis_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Analysis Ref"
+          },
+          "view_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "View Ref"
+          },
+          "view_revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "View Revision"
+          },
+          "available_views": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Available Views"
+          },
+          "export_format": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Export Format"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Note"
+          },
+          "repair": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Repair"
+          },
+          "report": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Report"
+          },
+          "values": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Values"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Task Id"
+          },
+          "task_revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Task Revision"
+          },
+          "purpose": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Purpose"
+          },
+          "query_identity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Query Identity"
+          },
+          "warnings": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Warnings"
+          },
+          "period_coverage": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Period Coverage"
+          },
+          "header_hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Header Hint"
+          },
+          "null_reasons": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Null Reasons"
+          },
+          "claims": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Claims"
+          },
+          "delivery": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Delivery"
+          }
+        },
+        "required": [
+          "result_ref",
+          "status"
+        ],
+        "title": "ResultOutput",
+        "type": "object"
+      },
+      "timeout_ms": 45000
+    },
+    {
+      "name": "query",
+      "title": "安全查询",
+      "description": "根据有效目录引用执行只读查询。返回结果与视图版本；原始明细只向用户展示。",
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          },
+          "task_revision": {
+            "minimum": 1,
+            "title": "Task Revision",
+            "type": "integer"
+          },
+          "plan_ref": {
+            "description": "data_plan 或 data_plan_query 返回的不可变计划引用；不重复传SQL或指标条件",
+            "title": "Plan Ref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id",
+          "task_revision",
+          "plan_ref"
+        ],
+        "title": "Execute",
+        "type": "object"
+      },
+      "permission": "data.read",
+      "output_kind": "data.dataset",
+      "output_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "metric_hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Metric Hint"
+          },
+          "validation": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Validation"
+          },
+          "result_lineage": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Result Lineage"
+          },
+          "inspection_reconciliation": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Inspection Reconciliation"
+          },
+          "analysis_options": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Analysis Options"
+          },
+          "business_project": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Business Project"
+          },
+          "answer_contract": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Answer Contract"
+          },
+          "detail_summary": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Detail Summary"
+          },
+          "facts": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Facts"
+          },
+          "metric_contract": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Metric Contract"
+          },
+          "source_provenance": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Source Provenance"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Reason Code"
+          },
+          "result_ref": {
+            "title": "Result Ref",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "succeeded",
+              "failed",
+              "cancelled",
+              "execution_unknown",
+              "running"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Title"
+          },
+          "row_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Row Count"
+          },
+          "truncated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Truncated"
+          },
+          "quality": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Quality"
+          },
+          "metrics": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Metrics"
+          },
+          "receipt": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Receipt"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Error"
+          },
+          "visualization": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Visualization"
+          },
+          "visualization_options": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Visualization Options"
+          },
+          "analysis_scope": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Analysis Scope"
+          },
+          "operators": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Operators"
+          },
+          "artifact_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Artifact Ref"
+          },
+          "plan_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Plan Ref"
+          },
+          "analysis_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Analysis Ref"
+          },
+          "view_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "View Ref"
+          },
+          "view_revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "View Revision"
+          },
+          "available_views": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Available Views"
+          },
+          "export_format": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Export Format"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Note"
+          },
+          "repair": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Repair"
+          },
+          "report": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Report"
+          },
+          "values": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Values"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Task Id"
+          },
+          "task_revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Task Revision"
+          },
+          "purpose": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Purpose"
+          },
+          "query_identity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Query Identity"
+          },
+          "warnings": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Warnings"
+          },
+          "period_coverage": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Period Coverage"
+          },
+          "header_hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Header Hint"
+          },
+          "null_reasons": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Null Reasons"
+          },
+          "claims": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Claims"
+          },
+          "delivery": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Delivery"
+          }
+        },
+        "required": [
+          "result_ref",
+          "status"
+        ],
+        "title": "ResultOutput",
+        "type": "object"
+      },
+      "timeout_ms": 45000
+    },
+    {
+      "name": "analyze",
+      "title": "统计分析",
+      "description": "对成功结果执行确定性统计，生成独立分析产物。",
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "result_ref": {
+            "description": "已成功查询（data_sql_query、data_metric_query 或 data_query）回执中的 result_ref",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Result Ref",
+            "type": "string"
+          },
+          "operators": {
+            "anyOf": [
+              {
+                "items": {
+                  "enum": [
+                    "compute_dispersion",
+                    "compute_skewness",
+                    "compute_quantiles",
+                    "detect_outliers",
+                    "compute_correlation",
+                    "compute_concentration"
+                  ],
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Operators"
+          },
+          "metric_column": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Metric Column"
+          }
+        },
+        "required": [
+          "result_ref"
+        ],
+        "title": "Analyze",
+        "type": "object"
+      },
+      "permission": "data.read",
+      "output_kind": "data.analysis",
+      "output_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "metric_hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Metric Hint"
+          },
+          "validation": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Validation"
+          },
+          "result_lineage": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Result Lineage"
+          },
+          "inspection_reconciliation": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Inspection Reconciliation"
+          },
+          "analysis_options": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Analysis Options"
+          },
+          "business_project": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Business Project"
+          },
+          "answer_contract": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Answer Contract"
+          },
+          "detail_summary": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Detail Summary"
+          },
+          "facts": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Facts"
+          },
+          "metric_contract": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Metric Contract"
+          },
+          "source_provenance": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Source Provenance"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Reason Code"
+          },
+          "result_ref": {
+            "title": "Result Ref",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "succeeded",
+              "failed",
+              "cancelled",
+              "execution_unknown",
+              "running"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Title"
+          },
+          "row_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Row Count"
+          },
+          "truncated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Truncated"
+          },
+          "quality": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Quality"
+          },
+          "metrics": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Metrics"
+          },
+          "receipt": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Receipt"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Error"
+          },
+          "visualization": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Visualization"
+          },
+          "visualization_options": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Visualization Options"
+          },
+          "analysis_scope": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Analysis Scope"
+          },
+          "operators": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Operators"
+          },
+          "artifact_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Artifact Ref"
+          },
+          "plan_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Plan Ref"
+          },
+          "analysis_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Analysis Ref"
+          },
+          "view_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "View Ref"
+          },
+          "view_revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "View Revision"
+          },
+          "available_views": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Available Views"
+          },
+          "export_format": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Export Format"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Note"
+          },
+          "repair": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Repair"
+          },
+          "report": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Report"
+          },
+          "values": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Values"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Task Id"
+          },
+          "task_revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Task Revision"
+          },
+          "purpose": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Purpose"
+          },
+          "query_identity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Query Identity"
+          },
+          "warnings": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Warnings"
+          },
+          "period_coverage": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Period Coverage"
+          },
+          "header_hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Header Hint"
+          },
+          "null_reasons": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Null Reasons"
+          },
+          "claims": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Claims"
+          },
+          "delivery": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Delivery"
+          }
+        },
+        "required": [
+          "result_ref",
+          "status"
+        ],
+        "title": "ResultOutput",
+        "type": "object"
+      },
+      "timeout_ms": 45000
+    },
+    {
+      "name": "visualize",
+      "title": "调整图表",
+      "description": "只调整展示，不重新查库。携带最新 view_revision；不兼容或版本冲突时保留原图。",
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "result_ref": {
+            "description": "已成功查询（data_sql_query、data_metric_query 或 data_query）回执中的 result_ref",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Result Ref",
+            "type": "string"
+          },
+          "kind": {
+            "description": "仅选择当前回执 visualization_options.available_types 中的类型；不支持的图形不会修改原结果。",
+            "enum": [
+              "table",
+              "kpi",
+              "bar",
+              "column",
+              "grouped-bar",
+              "stacked-bar",
+              "percent-stacked-bar",
+              "line",
+              "area",
+              "pie",
+              "donut",
+              "scatter",
+              "bubble",
+              "heatmap",
+              "treemap",
+              "histogram",
+              "radar",
+              "funnel",
+              "gauge",
+              "waterfall",
+              "boxplot",
+              "alert-table",
+              "pivot-table"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "expected_revision": {
+            "description": "工具回执中最新 view_revision；版本冲突时重新读取状态，不能强制覆盖",
+            "minimum": 0,
+            "title": "Expected Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "result_ref",
+          "kind",
+          "expected_revision"
+        ],
+        "title": "Visualize",
+        "type": "object"
+      },
+      "permission": "data.read",
+      "output_kind": "data.view",
+      "output_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "metric_hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Metric Hint"
+          },
+          "validation": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Validation"
+          },
+          "result_lineage": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Result Lineage"
+          },
+          "inspection_reconciliation": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Inspection Reconciliation"
+          },
+          "analysis_options": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Analysis Options"
+          },
+          "business_project": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Business Project"
+          },
+          "answer_contract": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Answer Contract"
+          },
+          "detail_summary": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Detail Summary"
+          },
+          "facts": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Facts"
+          },
+          "metric_contract": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Metric Contract"
+          },
+          "source_provenance": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Source Provenance"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Reason Code"
+          },
+          "result_ref": {
+            "title": "Result Ref",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "succeeded",
+              "failed",
+              "cancelled",
+              "execution_unknown",
+              "running"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Title"
+          },
+          "row_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Row Count"
+          },
+          "truncated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Truncated"
+          },
+          "quality": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Quality"
+          },
+          "metrics": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Metrics"
+          },
+          "receipt": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Receipt"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Error"
+          },
+          "visualization": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Visualization"
+          },
+          "visualization_options": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Visualization Options"
+          },
+          "analysis_scope": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Analysis Scope"
+          },
+          "operators": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Operators"
+          },
+          "artifact_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Artifact Ref"
+          },
+          "plan_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Plan Ref"
+          },
+          "analysis_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Analysis Ref"
+          },
+          "view_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "View Ref"
+          },
+          "view_revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "View Revision"
+          },
+          "available_views": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Available Views"
+          },
+          "export_format": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Export Format"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Note"
+          },
+          "repair": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Repair"
+          },
+          "report": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Report"
+          },
+          "values": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Values"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Task Id"
+          },
+          "task_revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Task Revision"
+          },
+          "purpose": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Purpose"
+          },
+          "query_identity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Query Identity"
+          },
+          "warnings": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Warnings"
+          },
+          "period_coverage": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Period Coverage"
+          },
+          "header_hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Header Hint"
+          },
+          "null_reasons": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Null Reasons"
+          },
+          "claims": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Claims"
+          },
+          "delivery": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Delivery"
+          }
+        },
+        "required": [
+          "result_ref",
+          "status"
+        ],
+        "title": "ResultOutput",
+        "type": "object"
+      },
+      "timeout_ms": 45000
+    },
+    {
+      "name": "sql_query",
+      "title": "基础查询",
+      "description": "原问无匹配的已发布指标时，按当前目录的授权表和实际字段编写只读 SQL。一次完成建任务、校验与执行，回执 values 含数值。列别名用中文业务名。新问题不填task_id；改条件时填原task_id；仅核对字段或取值时purpose填explore。",
+      "input_schema": {
+        "oneOf": [
+          {
+            "$defs": {
+              "ScopeProposal": {
+                "additionalProperties": false,
+                "properties": {
+                  "table": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "title": "Table",
+                    "type": "string"
+                  },
+                  "column": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "title": "Column",
+                    "type": "string"
+                  },
+                  "quote": {
+                    "maxLength": 2000,
+                    "minLength": 1,
+                    "title": "Quote",
+                    "type": "string"
+                  },
+                  "interpretation": {
+                    "maxLength": 1000,
+                    "minLength": 1,
+                    "title": "Interpretation",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "table",
+                  "column",
+                  "quote",
+                  "interpretation"
+                ],
+                "title": "ScopeProposal",
+                "type": "object"
+              }
+            },
+            "additionalProperties": false,
+            "properties": {
+              "replaces_result_ref": {
+                "anyOf": [
+                  {
+                    "maxLength": 128,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "修正本轮已成功但错误的同范围查询时，填写旧 result_ref；跨期间/地区比较不要填写。服务端验证关系，旧结果保留追溯。",
+                "title": "Replaces Result Ref"
+              },
+              "scope_proposal": {
+                "anyOf": [
+                  {
+                    "items": {
+                      "$ref": "#/$defs/ScopeProposal"
+                    },
+                    "maxItems": 20,
+                    "type": "array"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "可选范围建议，仅含授权字段、真实原文引用和解释；不允许 confirmed/verified/status，未传也检查原问。",
+                "title": "Scope Proposal"
+              },
+              "source_id": {
+                "description": "data_catalog 中的数据源 ID",
+                "minLength": 1,
+                "title": "Source Id",
+                "type": "string"
+              },
+              "sql": {
+                "anyOf": [
+                  {
+                    "maxLength": 50000,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "参数名必须为 sql，值是一条完整只读SQL文本，例如 {\"sql\":\"SELECT COUNT(*) AS 数量 FROM 已授权表\"}。不是工具名称，不要填写 data_sql_query，也不要使用 sqlTool/sql_tool。按目录字段和示例编写实际查询，期间保持用户要求；采用 registered_query 时省略 sql。",
+                "title": "Sql"
+              },
+              "title": {
+                "description": "结果的中文标题",
+                "maxLength": 160,
+                "minLength": 1,
+                "title": "Title",
+                "type": "string"
+              },
+              "chart_type": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "table",
+                      "kpi",
+                      "bar",
+                      "column",
+                      "grouped-bar",
+                      "stacked-bar",
+                      "percent-stacked-bar",
+                      "line",
+                      "area",
+                      "pie",
+                      "donut",
+                      "scatter",
+                      "bubble",
+                      "heatmap",
+                      "treemap",
+                      "histogram",
+                      "radar",
+                      "funnel",
+                      "gauge",
+                      "waterfall",
+                      "boxplot",
+                      "alert-table",
+                      "pivot-table"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "可选：柱状图column（竖向），条形图bar（横向），折线line，饼图pie，指标卡kpi，表格table",
+                "title": "Chart Type"
+              },
+              "task_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "只在修改本会话已有查询时填写其 task_id；新问题不填，会自动新建任务",
+                "title": "Task Id"
+              },
+              "purpose": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "answer",
+                      "explore"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "answer（默认）：结果用于回答用户；explore：只为查看取值、核对字段或试探数据范围，结果不放进回答下方的结果卡",
+                "title": "Purpose"
+              }
+            },
+            "required": [
+              "source_id",
+              "title",
+              "sql"
+            ],
+            "title": "AskSql",
+            "type": "object"
+          },
+          {
+            "$defs": {
+              "ScopeProposal": {
+                "additionalProperties": false,
+                "properties": {
+                  "table": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "title": "Table",
+                    "type": "string"
+                  },
+                  "column": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "title": "Column",
+                    "type": "string"
+                  },
+                  "quote": {
+                    "maxLength": 2000,
+                    "minLength": 1,
+                    "title": "Quote",
+                    "type": "string"
+                  },
+                  "interpretation": {
+                    "maxLength": 1000,
+                    "minLength": 1,
+                    "title": "Interpretation",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "table",
+                  "column",
+                  "quote",
+                  "interpretation"
+                ],
+                "title": "ScopeProposal",
+                "type": "object"
+              }
+            },
+            "additionalProperties": false,
+            "properties": {
+              "replaces_result_ref": {
+                "anyOf": [
+                  {
+                    "maxLength": 128,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "修正本轮已成功但错误的同范围查询时，填写旧 result_ref；跨期间/地区比较不要填写。服务端验证关系，旧结果保留追溯。",
+                "title": "Replaces Result Ref"
+              },
+              "scope_proposal": {
+                "anyOf": [
+                  {
+                    "items": {
+                      "$ref": "#/$defs/ScopeProposal"
+                    },
+                    "maxItems": 20,
+                    "type": "array"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "可选范围建议，仅含授权字段、真实原文引用和解释；不允许 confirmed/verified/status，未传也检查原问。",
+                "title": "Scope Proposal"
+              },
+              "source_id": {
+                "description": "data_catalog 中的数据源 ID",
+                "minLength": 1,
+                "title": "Source Id",
+                "type": "string"
+              },
+              "registered_query": {
+                "anyOf": [
+                  {
+                    "const": "historical_professional_units",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "与 sql 二选一。登记的历史测绘专业资质查询应传 \"registered_query\":\"historical_professional_units\"；参数名和值分开，不能拼接成键，不能把值填成字符串null。期间和范围取自当前用户原问。",
+                "title": "Registered Query"
+              },
+              "title": {
+                "description": "结果的中文标题",
+                "maxLength": 160,
+                "minLength": 1,
+                "title": "Title",
+                "type": "string"
+              },
+              "chart_type": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "table",
+                      "kpi",
+                      "bar",
+                      "column",
+                      "grouped-bar",
+                      "stacked-bar",
+                      "percent-stacked-bar",
+                      "line",
+                      "area",
+                      "pie",
+                      "donut",
+                      "scatter",
+                      "bubble",
+                      "heatmap",
+                      "treemap",
+                      "histogram",
+                      "radar",
+                      "funnel",
+                      "gauge",
+                      "waterfall",
+                      "boxplot",
+                      "alert-table",
+                      "pivot-table"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "可选：柱状图column（竖向），条形图bar（横向），折线line，饼图pie，指标卡kpi，表格table",
+                "title": "Chart Type"
+              },
+              "task_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "只在修改本会话已有查询时填写其 task_id；新问题不填，会自动新建任务",
+                "title": "Task Id"
+              },
+              "purpose": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "answer",
+                      "explore"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "answer（默认）：结果用于回答用户；explore：只为查看取值、核对字段或试探数据范围，结果不放进回答下方的结果卡",
+                "title": "Purpose"
+              }
+            },
+            "required": [
+              "source_id",
+              "title",
+              "registered_query"
+            ],
+            "title": "AskSql",
+            "type": "object"
+          }
+        ],
+        "$defs": {
+          "ScopeProposal": {
+            "additionalProperties": false,
+            "properties": {
+              "table": {
+                "maxLength": 200,
+                "minLength": 1,
+                "title": "Table",
+                "type": "string"
+              },
+              "column": {
+                "maxLength": 200,
+                "minLength": 1,
+                "title": "Column",
+                "type": "string"
+              },
+              "quote": {
+                "maxLength": 2000,
+                "minLength": 1,
+                "title": "Quote",
+                "type": "string"
+              },
+              "interpretation": {
+                "maxLength": 1000,
+                "minLength": 1,
+                "title": "Interpretation",
+                "type": "string"
+              }
+            },
+            "required": [
+              "table",
+              "column",
+              "quote",
+              "interpretation"
+            ],
+            "title": "ScopeProposal",
+            "type": "object"
+          }
+        }
+      },
+      "permission": "data.read",
+      "output_kind": "data.dataset",
+      "output_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "metric_hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Metric Hint"
+          },
+          "validation": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Validation"
+          },
+          "result_lineage": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Result Lineage"
+          },
+          "inspection_reconciliation": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Inspection Reconciliation"
+          },
+          "analysis_options": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Analysis Options"
+          },
+          "business_project": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Business Project"
+          },
+          "answer_contract": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Answer Contract"
+          },
+          "detail_summary": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Detail Summary"
+          },
+          "facts": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Facts"
+          },
+          "metric_contract": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Metric Contract"
+          },
+          "source_provenance": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Source Provenance"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Reason Code"
+          },
+          "result_ref": {
+            "title": "Result Ref",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "succeeded",
+              "failed",
+              "cancelled",
+              "execution_unknown",
+              "running"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Title"
+          },
+          "row_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Row Count"
+          },
+          "truncated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Truncated"
+          },
+          "quality": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Quality"
+          },
+          "metrics": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Metrics"
+          },
+          "receipt": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Receipt"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Error"
+          },
+          "visualization": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Visualization"
+          },
+          "visualization_options": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Visualization Options"
+          },
+          "analysis_scope": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Analysis Scope"
+          },
+          "operators": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Operators"
+          },
+          "artifact_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Artifact Ref"
+          },
+          "plan_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Plan Ref"
+          },
+          "analysis_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Analysis Ref"
+          },
+          "view_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "View Ref"
+          },
+          "view_revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "View Revision"
+          },
+          "available_views": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Available Views"
+          },
+          "export_format": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Export Format"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Note"
+          },
+          "repair": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Repair"
+          },
+          "report": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Report"
+          },
+          "values": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Values"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Task Id"
+          },
+          "task_revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Task Revision"
+          },
+          "purpose": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Purpose"
+          },
+          "query_identity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Query Identity"
+          },
+          "warnings": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Warnings"
+          },
+          "period_coverage": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Period Coverage"
+          },
+          "header_hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Header Hint"
+          },
+          "null_reasons": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Null Reasons"
+          },
+          "claims": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Claims"
+          },
+          "delivery": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Delivery"
+          }
+        },
+        "required": [
+          "result_ref",
+          "status"
+        ],
+        "title": "ResultOutput",
+        "type": "object"
+      },
+      "timeout_ms": 45000
+    },
+    {
+      "name": "metric_query",
+      "title": "业务指标查询",
+      "description": "仅查询当前目录 semantic_metrics 中适用本问的已发布指标，返回带维度的数值 facts。查不到匹配的已发布指标时，读取同一授权来源的明细字段后做基础查询。",
+      "input_schema": {
+        "$defs": {
+          "AskFilter": {
+            "additionalProperties": false,
+            "properties": {
+              "dimension": {
+                "description": "必须逐字使用该指标目录 dimensions 中的 id，不是任意地区名或物理字段。未列出的 region/city 等维度不可自行添加。",
+                "title": "Dimension",
+                "type": "string"
+              },
+              "op": {
+                "enum": [
+                  "eq",
+                  "ne",
+                  "gt",
+                  "gte",
+                  "lt",
+                  "lte",
+                  "in"
+                ],
+                "title": "Op",
+                "type": "string"
+              },
+              "values": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 100,
+                "minItems": 1,
+                "title": "Values",
+                "type": "array"
+              }
+            },
+            "required": [
+              "dimension",
+              "op",
+              "values"
+            ],
+            "title": "AskFilter",
+            "type": "object"
+          },
+          "PeriodComparison": {
+            "additionalProperties": false,
+            "properties": {
+              "baseline_periods": {
+                "description": "基期逐月YYYY-MM，与periods本期等长且互不重叠；一次查询两期并算逐月及合计同比",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 60,
+                "minItems": 1,
+                "title": "Baseline Periods",
+                "type": "array"
+              },
+              "change_threshold": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "description": "可选：合计变化率百分比阈值，例如10表示10%；不填则不判断阈值",
+                "title": "Change Threshold"
+              },
+              "operator": {
+                "default": ">",
+                "description": "与合计变化率阈值比较的运算符，严格按用户要求填写",
+                "enum": [
+                  ">",
+                  ">=",
+                  "<",
+                  "<=",
+                  "=="
+                ],
+                "title": "Operator",
+                "type": "string"
+              }
+            },
+            "required": [
+              "baseline_periods"
+            ],
+            "title": "PeriodComparison",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "source_id": {
+            "description": "data_catalog 中的数据源 ID",
+            "minLength": 1,
+            "title": "Source Id",
+            "type": "string"
+          },
+          "metric_id": {
+            "description": "目录 semantic_metrics 中的指标 id",
+            "minLength": 1,
+            "title": "Metric Id",
+            "type": "string"
+          },
+          "metric_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "该指标在目录中的 version；目录只列了名称时可省略，取已发布的最新版本",
+            "title": "Metric Version"
+          },
+          "periods": {
+            "description": "必须是真正的JSON字符串数组，如 [\"2025-01\",\"2025-02\"] 或 [\"2025\"]；不能传字符串null、不能改名periods_。有comparison时填本期月份；全量口径传 []",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 60,
+            "title": "Periods",
+            "type": "array"
+          },
+          "group_by": {
+            "description": "额外业务分组维度 id，来自指标的 dimensions。系统已自动按 periods 逐期返回，按月/年统计无需再填 period；仅兼容显式 period，不接受自造 month/year 等维度。",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 6,
+            "title": "Group By",
+            "type": "array"
+          },
+          "filters": {
+            "description": "只添加用户要求且该指标 dimensions 已登记的筛选。定义已固定的地区/类别无需重复筛选；未登记该维度时不得自造 region 等过滤条件。无额外筛选时省略。",
+            "items": {
+              "$ref": "#/$defs/AskFilter"
+            },
+            "maxItems": 30,
+            "title": "Filters",
+            "type": "array"
+          },
+          "title": {
+            "description": "结果的中文标题",
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "chart_type": {
+            "anyOf": [
+              {
+                "enum": [
+                  "table",
+                  "kpi",
+                  "bar",
+                  "column",
+                  "grouped-bar",
+                  "stacked-bar",
+                  "percent-stacked-bar",
+                  "line",
+                  "area",
+                  "pie",
+                  "donut",
+                  "scatter",
+                  "bubble",
+                  "heatmap",
+                  "treemap",
+                  "histogram",
+                  "radar",
+                  "funnel",
+                  "gauge",
+                  "waterfall",
+                  "boxplot",
+                  "alert-table",
+                  "pivot-table"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "仅用户指定图形时填写，如column柱状图、table表格；否则省略本字段。不要生成chart_type_error等自造参数。",
+            "title": "Chart Type"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "只在修改本会话已有查询时填写；新问题不填",
+            "title": "Task Id"
+          },
+          "comparison": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/PeriodComparison"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "月份比较对象，例如 periods=[\"2025-12\"]、comparison={\"baseline_periods\":[\"2025-11\"]}。同比基期填上年同期月份。不能传字符串\"环比\"/\"同比\"，也不要添加type/current_periods。可加指标一次返回原值、差额、变化率和合计。若参数修正仍失败，可省略comparison查询完整两期，再调用analysis_compute核算，保留同一指标口径。"
+          }
+        },
+        "required": [
+          "source_id",
+          "metric_id",
+          "title"
+        ],
+        "title": "AskMetric",
+        "type": "object"
+      },
+      "permission": "data.read",
+      "output_kind": "data.dataset",
+      "output_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "metric_hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Metric Hint"
+          },
+          "validation": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Validation"
+          },
+          "result_lineage": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Result Lineage"
+          },
+          "inspection_reconciliation": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Inspection Reconciliation"
+          },
+          "analysis_options": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Analysis Options"
+          },
+          "business_project": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Business Project"
+          },
+          "answer_contract": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Answer Contract"
+          },
+          "detail_summary": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Detail Summary"
+          },
+          "facts": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Facts"
+          },
+          "metric_contract": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Metric Contract"
+          },
+          "source_provenance": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Source Provenance"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Reason Code"
+          },
+          "result_ref": {
+            "title": "Result Ref",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "succeeded",
+              "failed",
+              "cancelled",
+              "execution_unknown",
+              "running"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Title"
+          },
+          "row_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Row Count"
+          },
+          "truncated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Truncated"
+          },
+          "quality": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Quality"
+          },
+          "metrics": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Metrics"
+          },
+          "receipt": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Receipt"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Error"
+          },
+          "visualization": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Visualization"
+          },
+          "visualization_options": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Visualization Options"
+          },
+          "analysis_scope": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Analysis Scope"
+          },
+          "operators": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Operators"
+          },
+          "artifact_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Artifact Ref"
+          },
+          "plan_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Plan Ref"
+          },
+          "analysis_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Analysis Ref"
+          },
+          "view_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "View Ref"
+          },
+          "view_revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "View Revision"
+          },
+          "available_views": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Available Views"
+          },
+          "export_format": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Export Format"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Note"
+          },
+          "repair": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Repair"
+          },
+          "report": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Report"
+          },
+          "values": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Values"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Task Id"
+          },
+          "task_revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Task Revision"
+          },
+          "purpose": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Purpose"
+          },
+          "query_identity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Query Identity"
+          },
+          "warnings": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Warnings"
+          },
+          "period_coverage": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Period Coverage"
+          },
+          "header_hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Header Hint"
+          },
+          "null_reasons": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Null Reasons"
+          },
+          "claims": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Claims"
+          },
+          "delivery": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Delivery"
+          }
+        },
+        "required": [
+          "result_ref",
+          "status"
+        ],
+        "title": "ResultOutput",
+        "type": "object"
+      },
+      "timeout_ms": 45000
+    },
+    {
+      "name": "derive_aggregation",
+      "title": "受控派生汇总",
+      "description": "基于已成功的可加指标事实或有发布依据的完整逐行计数结果，按用户原生确认的映射求和，供正文、表格和饼图复用。收到 NEEDS_CLARIFICATION 时把返回的 id 和完整提案原样传给 ask_user_question，用户确认后以相同结果和映射重试。未知、重叠、遗漏及非可加口径拒绝；保留原指标和已发布配置。",
+      "input_schema": {
+        "$defs": {
+          "DeriveGroup": {
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "description": "派生分组名（用户确认的归并名称），各组不得重复",
+                "maxLength": 120,
+                "minLength": 1,
+                "title": "Name",
+                "type": "string"
+              },
+              "members": {
+                "description": "该组包含的维度取值，必须逐字来自原事实的真实取值；不得与其他组重叠，全部组合起来必须恰好覆盖该维度的所有取值",
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 200,
+                "minItems": 1,
+                "title": "Members",
+                "type": "array"
+              }
+            },
+            "required": [
+              "name",
+              "members"
+            ],
+            "title": "DeriveGroup",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "result_ref": {
+            "description": "已成功查询（data_sql_query、data_metric_query 或 data_query）回执中的 result_ref",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Result Ref",
+            "type": "string"
+          },
+          "dimension": {
+            "description": "已成功结果的分类维度：用 facts.dimensions 中的真实维度 id，或逐行计数 SQL 结果中分类列的实际列名。",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Dimension",
+            "type": "string"
+          },
+          "groups": {
+            "description": "用户已确认的映射：每组 name+members。未确认时服务端返回需展示给用户的映射提案；未知/重叠/遗漏/非可加口径会被拒绝",
+            "items": {
+              "$ref": "#/$defs/DeriveGroup"
+            },
+            "maxItems": 20,
+            "minItems": 2,
+            "title": "Groups",
+            "type": "array"
+          },
+          "title": {
+            "description": "派生结果的中文标题",
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result_ref",
+          "dimension",
+          "groups",
+          "title"
+        ],
+        "title": "DeriveAggregation",
+        "type": "object"
+      },
+      "permission": "data.read",
+      "output_kind": "data.derived",
+      "output_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "metric_hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Metric Hint"
+          },
+          "validation": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Validation"
+          },
+          "result_lineage": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Result Lineage"
+          },
+          "inspection_reconciliation": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Inspection Reconciliation"
+          },
+          "analysis_options": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Analysis Options"
+          },
+          "business_project": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Business Project"
+          },
+          "answer_contract": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Answer Contract"
+          },
+          "detail_summary": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Detail Summary"
+          },
+          "facts": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Facts"
+          },
+          "metric_contract": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Metric Contract"
+          },
+          "source_provenance": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Source Provenance"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Reason Code"
+          },
+          "result_ref": {
+            "title": "Result Ref",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "succeeded",
+              "failed",
+              "cancelled",
+              "execution_unknown",
+              "running"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Title"
+          },
+          "row_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Row Count"
+          },
+          "truncated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Truncated"
+          },
+          "quality": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Quality"
+          },
+          "metrics": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Metrics"
+          },
+          "receipt": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Receipt"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Error"
+          },
+          "visualization": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Visualization"
+          },
+          "visualization_options": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Visualization Options"
+          },
+          "analysis_scope": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Analysis Scope"
+          },
+          "operators": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Operators"
+          },
+          "artifact_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Artifact Ref"
+          },
+          "plan_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Plan Ref"
+          },
+          "analysis_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Analysis Ref"
+          },
+          "view_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "View Ref"
+          },
+          "view_revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "View Revision"
+          },
+          "available_views": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Available Views"
+          },
+          "export_format": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Export Format"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Note"
+          },
+          "repair": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Repair"
+          },
+          "report": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Report"
+          },
+          "values": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Values"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Task Id"
+          },
+          "task_revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Task Revision"
+          },
+          "purpose": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Purpose"
+          },
+          "query_identity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Query Identity"
+          },
+          "warnings": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Warnings"
+          },
+          "period_coverage": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Period Coverage"
+          },
+          "header_hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Header Hint"
+          },
+          "null_reasons": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Null Reasons"
+          },
+          "claims": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Claims"
+          },
+          "delivery": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Delivery"
+          }
+        },
+        "required": [
+          "result_ref",
+          "status"
+        ],
+        "title": "ResultOutput",
+        "type": "object"
+      },
+      "timeout_ms": 45000
+    },
+    {
+      "name": "inspect",
+      "title": "查看结果状态",
+      "description": "读取结果状态、最新视图版本与可用图形，不返回原始明细。冲突后先调用。",
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "result_ref": {
+            "description": "已成功查询（data_sql_query、data_metric_query 或 data_query）回执中的 result_ref",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Result Ref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "result_ref"
+        ],
+        "title": "Inspect",
+        "type": "object"
+      },
+      "permission": "data.read",
+      "output_kind": "data.result-summary",
+      "output_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "metric_hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Metric Hint"
+          },
+          "validation": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Validation"
+          },
+          "result_lineage": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Result Lineage"
+          },
+          "inspection_reconciliation": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Inspection Reconciliation"
+          },
+          "analysis_options": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Analysis Options"
+          },
+          "business_project": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Business Project"
+          },
+          "answer_contract": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Answer Contract"
+          },
+          "detail_summary": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Detail Summary"
+          },
+          "facts": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Facts"
+          },
+          "metric_contract": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Metric Contract"
+          },
+          "source_provenance": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Source Provenance"
+          },
+          "reason_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Reason Code"
+          },
+          "result_ref": {
+            "title": "Result Ref",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "succeeded",
+              "failed",
+              "cancelled",
+              "execution_unknown",
+              "running"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Title"
+          },
+          "row_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Row Count"
+          },
+          "truncated": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Truncated"
+          },
+          "quality": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Quality"
+          },
+          "metrics": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Metrics"
+          },
+          "receipt": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Receipt"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Error"
+          },
+          "visualization": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Visualization"
+          },
+          "visualization_options": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Visualization Options"
+          },
+          "analysis_scope": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Analysis Scope"
+          },
+          "operators": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Operators"
+          },
+          "artifact_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Artifact Ref"
+          },
+          "plan_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Plan Ref"
+          },
+          "analysis_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Analysis Ref"
+          },
+          "view_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "View Ref"
+          },
+          "view_revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "View Revision"
+          },
+          "available_views": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Available Views"
+          },
+          "export_format": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Export Format"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Note"
+          },
+          "repair": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Repair"
+          },
+          "report": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Report"
+          },
+          "values": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Values"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Task Id"
+          },
+          "task_revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Task Revision"
+          },
+          "purpose": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Purpose"
+          },
+          "query_identity": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Query Identity"
+          },
+          "warnings": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Warnings"
+          },
+          "period_coverage": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Period Coverage"
+          },
+          "header_hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Header Hint"
+          },
+          "null_reasons": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Null Reasons"
+          },
+          "claims": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Claims"
+          },
+          "delivery": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Delivery"
+          }
+        },
+        "required": [
+          "result_ref",
+          "status"
+        ],
+        "title": "ResultOutput",
+        "type": "object"
+      },
+      "timeout_ms": 45000
+    }
+  ]
+}

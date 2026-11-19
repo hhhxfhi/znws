@@ -1,0 +1,607 @@
+/* Visualization geometry adapted from 智能问数. Product shell excluded; colors inherit Harness. */
+.product-table-wrap {
+  overflow: auto;
+}
+.product-table-wrap table {
+  border-collapse: collapse;
+  display: table;
+  font-size: 12px;
+  table-layout: auto;
+}
+.product-table-wrap th,
+.product-table-wrap td {
+  border-bottom: 1px solid var(--product-border);
+  padding: 8px;
+  text-align: left;
+}
+.product-pivot-wrap {
+  min-height: 240px;
+  position: relative;
+  width: 100%;
+}
+.product-pivot-canvas {
+  min-height: 240px;
+  overflow: auto;
+  width: 100%;
+}
+.product-pivot-note {
+  background: #fff7e6;
+  border: 1px solid #ffe7ba;
+  border-radius: 6px;
+  color: #795412; /* 0.6.2: fixed dark text on a light surface (dark theme made it invisible) */
+  font-size: 12px;
+  margin-bottom: 10px;
+  padding: 8px 12px;
+}
+.product-pivot-fallback {
+  align-items: center;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  color: #9b2c2c; /* 0.6.2: fixed dark text on a light surface (dark theme made it invisible) */
+  display: flex;
+  font-size: 12px;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 8px 12px;
+}
+.product-visual-empty {
+  align-items: center;
+  background: var(--dsw-alias-bg-layer-1, #fff);
+  color: var(--product-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  height: 100%;
+  justify-content: center;
+  padding: 28px;
+  text-align: center;
+}
+.product-visual-empty > .anticon {
+  color: var(--product-blue);
+  font-size: 30px;
+}
+.product-visual-empty strong {
+  color: var(--product-text);
+}
+.product-visual-empty span {
+  font-size: 12px;
+}
+.product-data-chart {
+  background: linear-gradient(180deg, #fbfdff, #f7faff);
+  box-sizing: border-box;
+  height: 100%;
+  overflow: auto;
+  padding: 18px;
+}
+.product-chart-heading {
+  align-items: flex-start;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.product-chart-heading strong {
+  color: var(--product-text);
+  font-size: 14px;
+}
+.product-chart-heading span,
+.product-chart-range {
+  color: var(--product-muted);
+  font-size: 11px;
+}
+.product-scatter-chart {
+  background: var(--dsw-alias-bg-layer-1, #fff);
+  border: 1px solid var(--product-border);
+  border-radius: 8px;
+  display: block;
+  min-height: 300px;
+  width: 100%;
+}
+.product-scatter-chart line {
+  stroke: #667085;
+  stroke-width: 1;
+}
+.product-scatter-chart line.grid {
+  stroke: var(--product-border);
+}
+.product-scatter-chart circle {
+  stroke: var(--dsw-alias-bg-layer-1, #fff);
+  stroke-width: 1.5;
+}
+.product-scatter-chart text {
+  fill: var(--product-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.product-scatter-chart text.axis-label {
+  fill: var(--product-muted);
+  font-size: 12px;
+  font-weight: 500;
+  text-anchor: middle;
+}
+.product-chart-range {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+.product-bar-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.product-bar-row {
+  align-items: center;
+  display: grid;
+  font-size: 12px;
+  gap: 10px;
+  grid-template-columns: minmax(72px, auto) 1fr 70px;
+}
+.product-bar-row > div {
+  background: var(--dsw-alias-interactive-bg-hover-solid, #e9eff8);
+  border-radius: 999px;
+  height: 10px;
+  overflow: hidden;
+}
+.product-bar-row i {
+  background: linear-gradient(90deg, #1261d7, #21a69a);
+  border-radius: inherit;
+  display: block;
+  height: 100%;
+}
+.product-bar-row strong {
+  font-size: 11px;
+  text-align: right;
+}
+.product-visualization {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  overflow: auto;
+}
+.product-visualization-heading {
+  align-items: center;
+  display: flex;
+}
+.product-disclosure-note {
+  color: var(--product-muted);
+  font-size: 11px;
+}
+.product-kpi-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+.product-kpi-card {
+  background: var(--dsw-alias-bg-layer-1, #fff);
+  border: 1px solid var(--product-border);
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+.product-kpi-label {
+  color: var(--product-muted);
+  display: block;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+.product-kpi-value {
+  color: var(--product-text);
+  font-size: 26px;
+  font-weight: 700;
+}
+.product-kpi-value small {
+  color: var(--product-muted);
+  font-size: 12px;
+  font-weight: 500;
+  margin-left: 6px;
+}
+.product-series-label {
+  color: var(--product-text);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.product-series-track {
+  background: var(--dsw-alias-interactive-bg-hover-solid, #e9eff8);
+  border-radius: 999px;
+  height: 10px;
+  overflow: hidden;
+}
+.product-series-track i {
+  border-radius: inherit;
+  display: block;
+  height: 100%;
+}
+.product-column-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  height: 100%;
+  min-height: 200px;
+}
+.product-column-row {
+  align-items: center;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-end;
+  min-width: 0;
+}
+/* 0908 B1：竖向柱子的高度由 JSX inline style 承载数值。
+   轨道必须是「定高 + 底部对齐」的 flex 容器，百分比高度才能解析出来并从底部往上长。 */
+.product-column-row .product-series-track {
+  align-items: flex-end;
+  display: flex;
+  height: 180px;
+  width: 100%;
+  max-width: 48px;
+}
+.product-column-row .product-series-track i {
+  /* 这里绝不能再写 height：数值由 inline height 决定 */
+  width: 100%;
+}
+.product-bar-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+/* 0908 B5：含负值时以 0 为轴心双向绘制 */
+.product-series-track--signed {
+  position: relative;
+}
+.product-series-track--signed i {
+  position: absolute;
+}
+.product-bar-row .product-series-track--signed i {
+  bottom: 0;
+  height: auto;
+  top: 0;
+}
+.product-column-row .product-series-track--signed i {
+  left: 0;
+  right: 0;
+  width: auto;
+}
+.product-series-zero {
+  background: #98a2b3;
+  position: absolute;
+  z-index: 1;
+}
+.product-bar-row .product-series-zero {
+  bottom: 0;
+  top: 0;
+  width: 1px;
+}
+.product-column-row .product-series-zero {
+  left: 0;
+  right: 0;
+  height: 1px;
+}
+.product-grouped-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.product-grouped-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+.product-grouped-legend span {
+  align-items: center;
+  color: var(--product-text);
+  display: inline-flex;
+  font-size: 11px;
+  gap: 6px;
+}
+.product-grouped-legend i {
+  border-radius: 3px;
+  display: inline-block;
+  height: 10px;
+  width: 10px;
+}
+.product-grouped-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.product-grouped-row {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(72px, auto) 1fr;
+}
+.product-grouped-bars {
+  align-items: center;
+  background: var(--dsw-alias-interactive-bg-hover-solid, #e9eff8);
+  border-radius: 999px;
+  display: flex;
+  gap: 2px;
+  height: 18px;
+  overflow: hidden;
+  padding: 2px;
+}
+.product-grouped-segment {
+  border-radius: 999px;
+  height: 100%;
+  transition: width 0.2s ease;
+}
+/* 0908 B3：分组模式下每个系列占一个等宽槽位，段长按全局最大值归一化，跨行长度可比。 */
+.product-grouped-slot {
+  align-items: center;
+  align-self: stretch;
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+}
+/* 0908 B4：100% 堆叠遇到「无正值」的行，给出明确说明而不是留一整行空白。 */
+.product-grouped-void {
+  color: var(--product-text);
+  font-size: 10px;
+  padding-left: 6px;
+  white-space: nowrap;
+}
+.product-grouped-row {
+  grid-template-columns: minmax(72px, auto) 1fr auto;
+}
+.product-grouped-axis-end {
+  color: var(--product-text);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  min-width: 30px;
+  text-align: right;
+}
+.product-alert-banner {
+  align-items: center;
+  background: #fff4f4;
+  border: 1px solid #f7c5c5;
+  border-radius: 8px;
+  color: #9b2c2c; /* 0.6.2: fixed dark text on a light surface (dark theme made it invisible) */
+  display: flex;
+  gap: 8px;
+  font-size: 13px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+}
+/* 0908：表格静默截断提示 */
+.product-table-notice {
+  background: #f2f6fc;
+  border: 1px solid #d8e2f0;
+  border-radius: 8px;
+  color: #27466e; /* 0.6.2: fixed dark text on a light surface (dark theme made it invisible) */
+  font-size: 12px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+}
+.product-table-row--alert > td {
+  background: #fff1f1;
+  color: #9b2c2c; /* 0.6.2: fixed dark text on a light surface (dark theme made it invisible) */
+}
+.product-table-row--alert > td.product-table-cell--alert {
+  font-weight: 700;
+  text-decoration: underline;
+}
+.product-table-cell--alert {
+  color: #9b2c2c; /* 0.6.2: fixed dark text on a light surface (dark theme made it invisible) */
+}
+.product-line-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+.product-line-chart svg {
+  background: var(--dsw-alias-bg-layer-1, #fff);
+  border: 1px solid var(--product-border);
+  border-radius: 8px;
+  display: block;
+  width: 100%;
+}
+.product-line-chart svg line.grid {
+  stroke: var(--product-border);
+  stroke-width: 1;
+}
+.product-line-chart svg text {
+  fill: var(--product-muted);
+  font-size: 11px;
+}
+.product-line-chart svg text.axis-label {
+  text-anchor: middle;
+}
+.product-pie-chart {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+.product-pie-chart svg {
+  height: 300px;
+  width: 300px;
+}
+.product-pie-legend {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 180px;
+}
+.product-pie-legend span {
+  align-items: center;
+  color: var(--product-text);
+  display: inline-flex;
+  font-size: 12px;
+  gap: 8px;
+}
+.product-pie-legend i {
+  border-radius: 3px;
+  display: inline-block;
+  height: 11px;
+  width: 11px;
+}
+.product-panel-error {
+  align-items: flex-start;
+  background: #fff5f5;
+  border: 1px solid #f3c2c2;
+  border-radius: 8px;
+  color: #9b2c2c; /* 0.6.2: fixed dark text on a light surface (dark theme made it invisible) */
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+}
+.product-panel-error strong {
+  font-size: 14px;
+}
+.product-panel-error span {
+  color: var(--product-text);
+  font-size: 12px;
+}
+.product-panel-error button {
+  background: var(--dsw-alias-bg-layer-1, #fff);
+  border: 1px solid #e0a3a3;
+  border-radius: 6px;
+  color: var(--product-text);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 4px 12px;
+}
+.product-visual-note {
+  color: #795412; /* 0.6.2: fixed dark text on a light surface (dark theme made it invisible) */
+  background: #fff8e6;
+  border: 1px solid #f5e3b3;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 8px 0 0;
+  padding: 6px 10px;
+}
+.product-scatter-wrap {
+  height: 100%;
+}
+.product-heatmap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-x: auto;
+}
+.product-heatmap-grid {
+  display: grid;
+  gap: 2px;
+  width: max-content;
+}
+.product-heatmap-cell {
+  align-items: center;
+  border-radius: 3px;
+  display: flex;
+  font-size: 11px;
+  justify-content: center;
+  min-height: 34px;
+  min-width: 46px;
+  padding: 4px 6px;
+  text-align: center;
+  white-space: nowrap;
+}
+.product-heatmap-head {
+  background: var(--dsw-alias-bg-layer-1, #fff);
+  color: var(--product-text);
+  font-weight: 500;
+}
+/* 0908 B7：「无数据」的格子要与「值为 0」的格子区分开 */
+.product-heatmap-cell--empty {
+  background: repeating-linear-gradient(45deg, #fafbfc, #fafbfc 4px, #f1f3f6 4px, #f1f3f6 8px);
+  color: var(--product-text);
+}
+.product-heatmap-corner {
+  background: transparent;
+}
+.product-heatmap-scale {
+  align-items: center;
+  color: var(--product-text);
+  display: flex;
+  font-size: 11px;
+  gap: 8px;
+}
+.product-heatmap-scale i {
+  border-radius: 3px;
+  height: 10px;
+  width: 120px;
+}
+.product-treemap {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.product-treemap-svg,
+.product-histogram-svg {
+  height: auto;
+  width: 100%;
+}
+.product-radar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.product-radar svg {
+  height: auto;
+  max-width: 420px;
+  width: 100%;
+}
+.product-funnel,
+.product-waterfall,
+.product-boxplot {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.product-funnel-svg,
+.product-waterfall-svg,
+.product-boxplot-svg {
+  height: auto;
+  width: 100%;
+}
+/* 0908 B13：这三种图的 <line class="grid"> 过去没有任何 stroke 规则（SVG 默认 stroke:none，网格线不可见），
+   text.axis-tick 在全站 CSS 里 0 处定义，轴文字以浏览器默认 16px 黑字渲染并相互重叠。
+   下面对齐 .product-line-chart 的现有写法。 */
+.product-histogram-svg line.grid,
+.product-waterfall-svg line.grid,
+.product-boxplot-svg line.grid {
+  stroke: var(--product-border);
+  stroke-width: 1;
+}
+.product-histogram-svg text,
+.product-waterfall-svg text,
+.product-boxplot-svg text,
+.product-radar svg text {
+  fill: var(--product-muted);
+  font-size: 11px;
+}
+.product-histogram-svg text.axis-tick,
+.product-waterfall-svg text.axis-tick,
+.product-boxplot-svg text.axis-tick,
+.product-line-chart svg text.axis-tick,
+.product-radar svg text.axis-tick {
+  fill: var(--product-muted);
+  font-size: 11px;
+  font-weight: 500;
+}
+.product-histogram-svg text.axis-label,
+.product-waterfall-svg text.axis-label,
+.product-boxplot-svg text.axis-label {
+  fill: var(--product-muted);
+  font-size: 11px;
+}
+.product-gauge-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+.product-gauge-card svg {
+  height: auto;
+  width: 300px;
+}
+.product-measure-bars{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px}
+.product-measure-bars-panel{min-width:0}
+.product-measure-bars-panel h4{margin:0 0 8px;font-size:13px;font-weight:600}

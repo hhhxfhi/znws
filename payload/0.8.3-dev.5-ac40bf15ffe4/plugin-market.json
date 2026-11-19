@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "natural-work.ask-data",
+  "package": "@natural-work/ask-data",
+  "version": "0.8.3-dev.5",
+  "title": "智能问数（测绘版）",
+  "category": "data-analysis",
+  "entry": {
+    "kind": "dsh-bundle",
+    "manifest": "package.json"
+  },
+  "contributes": {
+    "modes": [
+      "natural-data"
+    ],
+    "settings": [
+      "数据源与问数"
+    ],
+    "slots": [
+      "conversation.chat.turnTail"
+    ]
+  },
+  "runtime": {
+    "python": ">=3.11",
+    "setup": "setup.py",
+    "firstEnable": "prepare-python-environment"
+  },
+  "permissions": [
+    "local-plugin-data",
+    "local-python-process",
+    "configured-read-only-databases"
+  ],
+  "data": {
+    "default": "$DSH_HOME/plugin-data/ask-data",
+    "retainOnDisable": true,
+    "retainOnUninstall": true
+  }
+}

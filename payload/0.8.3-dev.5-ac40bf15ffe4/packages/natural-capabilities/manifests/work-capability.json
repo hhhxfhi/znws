@@ -1,0 +1,465 @@
+{
+  "contract_version": 1,
+  "id": "work",
+  "version": "2.0.0",
+  "title": "任务记忆",
+  "operations": [
+    {
+      "name": "read",
+      "title": "读取会话任务",
+      "description": "读取当前会话任务快照；用于多轮继承、回到历史、追加和取消。",
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {},
+        "title": "Read",
+        "type": "object"
+      },
+      "permission": "work.read",
+      "output_kind": "work.tasks",
+      "output_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "tasks": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Tasks",
+            "type": "array"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "note": {
+            "default": "任务状态是工作记忆，不能代替用户授权或业务正确性验证。",
+            "title": "Note",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tasks",
+          "revision"
+        ],
+        "title": "Output",
+        "type": "object"
+      },
+      "timeout_ms": 45000
+    },
+    {
+      "name": "create",
+      "title": "新建会话任务",
+      "description": "新建独立任务；追加用append，切换主题用switch。返回task_id供后续计划和更新。",
+      "input_schema": {
+        "$defs": {
+          "FieldPatch": {
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "title": "Name",
+                "type": "string"
+              },
+              "value": {
+                "title": "Value",
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "value"
+            ],
+            "title": "FieldPatch",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "expected_revision": {
+            "minimum": 0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "action": {
+            "default": "append",
+            "enum": [
+              "start",
+              "append",
+              "switch"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "capability_id": {
+            "description": "问数任务固定填 \"data\"；不要填目录里的 metric_mapping",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Capability Id",
+            "type": "string"
+          },
+          "set_fields": {
+            "items": {
+              "$ref": "#/$defs/FieldPatch"
+            },
+            "title": "Set Fields",
+            "type": "array"
+          },
+          "state": {
+            "default": "ready",
+            "enum": [
+              "needs_clarification",
+              "ready",
+              "blocked"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_revision",
+          "title",
+          "capability_id"
+        ],
+        "title": "Create",
+        "type": "object"
+      },
+      "permission": "work.read",
+      "output_kind": "work.tasks",
+      "output_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "tasks": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Tasks",
+            "type": "array"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "note": {
+            "default": "任务状态是工作记忆，不能代替用户授权或业务正确性验证。",
+            "title": "Note",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tasks",
+          "revision"
+        ],
+        "title": "Output",
+        "type": "object"
+      },
+      "timeout_ms": 45000
+    },
+    {
+      "name": "update",
+      "title": "修改已有任务",
+      "description": "task_id必须原样填写。字段set/remove只修改明确指定条件，保留其他条件。",
+      "input_schema": {
+        "$defs": {
+          "FieldPatch": {
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "title": "Name",
+                "type": "string"
+              },
+              "value": {
+                "title": "Value",
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "value"
+            ],
+            "title": "FieldPatch",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "task_id": {
+            "description": "work_read/create返回的原始task_id，必须填写",
+            "minLength": 1,
+            "title": "Task Id",
+            "type": "string"
+          },
+          "expected_revision": {
+            "minimum": 0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "action": {
+            "default": "refine",
+            "enum": [
+              "refine",
+              "resume",
+              "verify",
+              "cancel",
+              "provide_material"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Title"
+          },
+          "capability_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Capability Id"
+          },
+          "set_fields": {
+            "description": "字段补丁，每项{name,value}。保留未改字段，不把当前任务筛选传给新主题。",
+            "items": {
+              "$ref": "#/$defs/FieldPatch"
+            },
+            "title": "Set Fields",
+            "type": "array"
+          },
+          "remove_fields": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Remove Fields",
+            "type": "array"
+          },
+          "state": {
+            "default": "ready",
+            "enum": [
+              "needs_clarification",
+              "ready",
+              "running",
+              "partially_delivered",
+              "delivered",
+              "blocked",
+              "cancelled"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "result_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Result Refs",
+            "type": "array"
+          }
+        },
+        "required": [
+          "task_id",
+          "expected_revision"
+        ],
+        "title": "Update",
+        "type": "object"
+      },
+      "permission": "work.read",
+      "output_kind": "work.tasks",
+      "output_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "tasks": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Tasks",
+            "type": "array"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "note": {
+            "default": "任务状态是工作记忆，不能代替用户授权或业务正确性验证。",
+            "title": "Note",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tasks",
+          "revision"
+        ],
+        "title": "Output",
+        "type": "object"
+      },
+      "timeout_ms": 45000
+    },
+    {
+      "name": "patch",
+      "title": "更新会话任务",
+      "description": "保存明确任务及字段增删。材料不等于任务；不明确用needs_clarification。不启动业务查询；不构成权限或完成证明。",
+      "input_schema": {
+        "$defs": {
+          "FieldPatch": {
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "title": "Name",
+                "type": "string"
+              },
+              "value": {
+                "title": "Value",
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "value"
+            ],
+            "title": "FieldPatch",
+            "type": "object"
+          }
+        },
+        "additionalProperties": false,
+        "properties": {
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Task Id"
+          },
+          "expected_revision": {
+            "minimum": 0,
+            "title": "Expected Revision",
+            "type": "integer"
+          },
+          "action": {
+            "enum": [
+              "start",
+              "refine",
+              "append",
+              "switch",
+              "resume",
+              "verify",
+              "cancel",
+              "provide_material"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "capability_id": {
+            "description": "问数任务固定填 \"data\"；不要填目录里的 metric_mapping",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Capability Id",
+            "type": "string"
+          },
+          "set_fields": {
+            "description": "字段补丁，每项{name,value}。保留未改字段，不把当前任务筛选传给新主题。",
+            "items": {
+              "$ref": "#/$defs/FieldPatch"
+            },
+            "title": "Set Fields",
+            "type": "array"
+          },
+          "remove_fields": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Remove Fields",
+            "type": "array"
+          },
+          "state": {
+            "default": "ready",
+            "enum": [
+              "needs_clarification",
+              "ready",
+              "running",
+              "partially_delivered",
+              "delivered",
+              "blocked",
+              "cancelled"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "result_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Result Refs",
+            "type": "array"
+          }
+        },
+        "required": [
+          "expected_revision",
+          "action",
+          "title",
+          "capability_id"
+        ],
+        "title": "Patch",
+        "type": "object"
+      },
+      "permission": "work.read",
+      "output_kind": "work.tasks",
+      "output_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "tasks": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Tasks",
+            "type": "array"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "note": {
+            "default": "任务状态是工作记忆，不能代替用户授权或业务正确性验证。",
+            "title": "Note",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tasks",
+          "revision"
+        ],
+        "title": "Output",
+        "type": "object"
+      },
+      "timeout_ms": 45000
+    }
+  ]
+}

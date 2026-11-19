@@ -1,0 +1,4016 @@
+{
+  "source_document": {
+    "file": "测绘地理信息管理_二级指标查询SQL示例表_v2.1.xlsx",
+    "sha256": "b5f96ce65c4ac438d232fb783ec227315b868d1292c61f8db2e0699e2a429acd",
+    "metric_sheet": "二级指标SQL示例",
+    "metric_count": 176
+  },
+  "notes": "一、编制说明\n1. 覆盖范围：仅整理“有指标值计算脚本实现”的二级指标，共 176 个，涉及一级指标 DTSH（地图审核）、CGSP（测绘成果利用审批）、CHZZ（测绘资质管理）、JCCH（基础测绘项目）。\n2. 时间口径：月度指标以 2026 年 8 月为例（累计类为 2026-01-01 至 2026-08-31，当月类为 2026-08-01 至 2026-08-31）；年度指标以 2026 年为例。\n3. 区域口径：省级指标沿用源表自带的地域过滤（ywfsd / szqy = '广东省'）；地市维度指标统一以广州市为例，替换为其他地市名称即可；全省口径需去掉地市条件后独立汇总，不可由地市值相加（去重与跨地市归属会导致失真）。注意：CGSP_07 系列的地市归属遵循脚本特殊规则——szds 为空/'null' 且 szsf='广东省' 的记录全部归入广州市(440100)，szds 非标准值归入省外(999999)，示例已按此写，直接用 szds='广州市' 过滤会比脚本落库值偏小。\n4. 语法：全部为 PostgreSQL 语法；时间区间统一「左闭右开」（>= 当月 1 日 AND < 次月 1 日），避免 datetime 字段因时分秒漏计。\n5. 除零与空值：脚本规则为基期/分母为 0 时指标值落 '0'，示例统一用 NULLIF + COALESCE 表达；金额字段（xmje、yzcje）在源表中为文本，示例按脚本以 ::NUMERIC 转换，脏数据用 REGEXP_REPLACE 清洗。\n6. 表名：脚本中 ods_jcch_xm、ods_jcch_jyljcchxm、ods_proj_zzdwsq、ods_proj_zzry、ods_proj_up_surveydata 为 ODS 同步表，示例统一采用数据字典的正式表名（jcch_xm、jcch_jyljcchxm、proj_zzdwsq、proj_zzry、proj_up_surveydata）。\n7. 参数化建议：问数系统复用时，将示例中的 '2026-08-01'、'2026-09-01' 分别替换为「报告月首日」「次月首日」，'2026-01-01' 替换为「年初」，'2025-01-01'、'2025-09-01' 替换为对应上年同期，即可支持任意月份；年度指标替换 nd / xmnd 的年份值。\n8. 脚本按 2026 年 1—10 月批量跑数，本表按需求统一取 8 月（累计类为 1—8 月）作为示例。\n9. 字段类型提醒：CHZZ_03 的时间字段 slrq 在字典中标注为 varchar，但脚本用 EXTRACT 取值，示例按 date/timestamp 比较；若实际为文本，请改为 slrq::date 后比较。\n\n二、脚本与数据字典的差异修订\n1. CHZZ_04（测绘专业技术人员）编码错位：数据字典为 01=总数、02=测绘专业合计、03=高级、04=中级、05=初级、06=相关、07=非专业；但 CHZZ_04指标值计算脚本落库为 01=高级、02=中级、03=初级、06=相关、07=非专业（缺总数与专业合计，中级/初级编码后移）。本表已按数据字典编码整理（01~07 全部 7 条），SQL 直接从源表 proj_zzry 计算，不依赖脚本落库值；ch_zbzb 中现有 CHZZ_04 数据的编码含义与字典不符，需修订脚本（01→总数、02→专业合计、03→高级、04→中级、05→初级）并重跑。\n2. CHZZ_03 中“延续申请”类由脚本以 xmmc='延续申请' 实现；占比 CHZZ_03_15 的分母为本年度资质业务总量。\n3. CHZZ_01（资质单位数）取自当前有效快照，脚本对 4 个环比指标无数据支撑计算，固定落 0。\n4. JCCH_02 的三个同比指标（02_02、02_04、02_06）与 JCCH_01 同比口径不同：2026 版进度新表自 2026 年启用，无 2025 年同口径报送数据，脚本固定落 0。\n5. 字典中部分统计口径描述有误，已按脚本修正：CGSP_05_06（自然资源占比）字典仅写“案卷量”，应为“自然资源领域案卷量/三类审批事项累计总量×100%”；CHZZ_02 一级示例中出现 zzdj 字段（实际字段为 sqdwzzdj）。\n\n三、未覆盖的二级指标（脚本未实现，故不整理）\nCHZZ_06（质量监督检查 5 项，脚本 SQL 示例为空）；FWZZ_01~03（服务总值，无明细表，来源统计直报文件）；CGFW_01~03（成果目录、天地图，来源档案馆/技术中心统计值）。\n补充：CGSP_07_09（航空摄影测绘资质单位数）原脚本漏写（脚本仅实现到 CGSP_07_08），本表已按同系列口径补齐示例，脚本侧补丁见随附 CGSP_07_09指标补丁.sql。",
+  "user_decisions": {
+    "missing_history": "unavailable_not_zero",
+    "deferred_metric_codes": [
+      "CHZZ_01_02",
+      "CHZZ_01_04",
+      "CHZZ_01_06",
+      "CHZZ_01_08",
+      "JCCH_02_02",
+      "JCCH_02_04",
+      "JCCH_02_06"
+    ]
+  },
+  "metrics": [
+    {
+      "code": "DTSH_01_01",
+      "name": "本年度地图审核批准案卷数量",
+      "unit": "件",
+      "definition": "批准时间（pzsj）在 2026-01-01 至 2026-08-31、业务发生地（ywfsd）为“广东省”的地图审核案卷数；示例为全省口径。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM xxzy_dtshb\nWHERE ywfsd = '广东省'\n  AND pzsj >= DATE '2026-01-01'\n  AND pzsj < DATE '2026-09-01';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 2,
+      "source_cells": {
+        "name": "A2",
+        "code": "B2",
+        "unit": "C2",
+        "definition": "D2",
+        "sql": "E2",
+        "note": "F2"
+      },
+      "tables": [
+        "xxzy_dtshb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "DTSH_01_02",
+      "name": "本年度地图审核批准案卷数量_同比",
+      "unit": "%",
+      "definition": "（本年累计−上年同期累计）/上年同期累计×100%；示例为 2026 年 1—8 月对 2025 年 1—8 月，基期为 0 时返回 0。",
+      "sql": "SELECT COALESCE(ROUND((cur.v - base.v) * 100.0 / NULLIF(base.v, 0), 2), 0) AS zbz\nFROM (\n    SELECT COUNT(1) AS v\n    FROM xxzy_dtshb\n    WHERE ywfsd = '广东省'\n      AND pzsj >= DATE '2026-01-01'\n      AND pzsj < DATE '2026-09-01'\n) cur,\n(\n    SELECT COUNT(1) AS v\n    FROM xxzy_dtshb\n    WHERE ywfsd = '广东省'\n      AND pzsj >= DATE '2025-01-01'\n      AND pzsj < DATE '2025-09-01'\n) base;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 3,
+      "source_cells": {
+        "name": "A3",
+        "code": "B3",
+        "unit": "C3",
+        "definition": "D3",
+        "sql": "E3",
+        "note": "F3"
+      },
+      "tables": [
+        "xxzy_dtshb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "DTSH_01_03",
+      "name": "当月地图审核批准案卷数量",
+      "unit": "件",
+      "definition": "批准时间（pzsj）在 2026-08-01 至 2026-08-31、ywfsd 为“广东省”的案卷数；示例取 8 月。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM xxzy_dtshb\nWHERE ywfsd = '广东省'\n  AND pzsj >= DATE '2026-08-01'\n  AND pzsj < DATE '2026-09-01';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 4,
+      "source_cells": {
+        "name": "A4",
+        "code": "B4",
+        "unit": "C4",
+        "definition": "D4",
+        "sql": "E4",
+        "note": "F4"
+      },
+      "tables": [
+        "xxzy_dtshb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "DTSH_01_04",
+      "name": "当月地图审核批准案卷数量_环比",
+      "unit": "%",
+      "definition": "（本月值−上月值）/上月值×100%；示例为 2026 年 8 月对 7 月，上月为 0 时返回 0。",
+      "sql": "SELECT COALESCE(ROUND((m8.v - m7.v) * 100.0 / NULLIF(m7.v, 0), 2), 0) AS zbz\nFROM (\n    SELECT COUNT(1) AS v\n    FROM xxzy_dtshb\n    WHERE ywfsd = '广东省'\n      AND pzsj >= DATE '2026-08-01'\n      AND pzsj < DATE '2026-09-01'\n) m8,\n(\n    SELECT COUNT(1) AS v\n    FROM xxzy_dtshb\n    WHERE ywfsd = '广东省'\n      AND pzsj >= DATE '2026-07-01'\n      AND pzsj < DATE '2026-08-01'\n) m7;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 5,
+      "source_cells": {
+        "name": "A5",
+        "code": "B5",
+        "unit": "C5",
+        "definition": "D5",
+        "sql": "E5",
+        "note": "F5"
+      },
+      "tables": [
+        "xxzy_dtshb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "DTSH_02_01",
+      "name": "本年度省级地图审核批准案卷数量",
+      "unit": "件",
+      "definition": "批准时间在 2026-01-01 至 2026-08-31、ywfsd 为“广东省”且事项名称（sxmc）为“省级地图审核”的案卷数。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM xxzy_dtshb\nWHERE ywfsd = '广东省'\n  AND sxmc = '省级地图审核'\n  AND pzsj >= DATE '2026-01-01'\n  AND pzsj < DATE '2026-09-01';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 6,
+      "source_cells": {
+        "name": "A6",
+        "code": "B6",
+        "unit": "C6",
+        "definition": "D6",
+        "sql": "E6",
+        "note": "F6"
+      },
+      "tables": [
+        "xxzy_dtshb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "DTSH_02_02",
+      "name": "本年度省级地图审核批准案卷数量_同比",
+      "unit": "%",
+      "definition": "（本年省级累计−上年同期省级累计）/上年同期省级累计×100%；示例 2026 年 1—8 月对 2025 年 1—8 月。",
+      "sql": "SELECT COALESCE(ROUND((cur.v - base.v) * 100.0 / NULLIF(base.v, 0), 2), 0) AS zbz\nFROM (\n    SELECT COUNT(1) AS v\n    FROM xxzy_dtshb\n    WHERE ywfsd = '广东省'\n      AND sxmc = '省级地图审核'\n      AND pzsj >= DATE '2026-01-01'\n      AND pzsj < DATE '2026-09-01'\n) cur,\n(\n    SELECT COUNT(1) AS v\n    FROM xxzy_dtshb\n    WHERE ywfsd = '广东省'\n      AND sxmc = '省级地图审核'\n      AND pzsj >= DATE '2025-01-01'\n      AND pzsj < DATE '2025-09-01'\n) base;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 7,
+      "source_cells": {
+        "name": "A7",
+        "code": "B7",
+        "unit": "C7",
+        "definition": "D7",
+        "sql": "E7",
+        "note": "F7"
+      },
+      "tables": [
+        "xxzy_dtshb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "DTSH_02_03",
+      "name": "当月省级地图审核批准案卷数量",
+      "unit": "件",
+      "definition": "批准时间在 2026 年 8 月、审核层级为“省级”（sxmc='省级地图审核'）的案卷数。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM xxzy_dtshb\nWHERE ywfsd = '广东省'\n  AND sxmc = '省级地图审核'\n  AND pzsj >= DATE '2026-08-01'\n  AND pzsj < DATE '2026-09-01';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 8,
+      "source_cells": {
+        "name": "A8",
+        "code": "B8",
+        "unit": "C8",
+        "definition": "D8",
+        "sql": "E8",
+        "note": "F8"
+      },
+      "tables": [
+        "xxzy_dtshb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "DTSH_02_04",
+      "name": "当月省级地图审核批准案卷数量_环比",
+      "unit": "%",
+      "definition": "（本月省级值−上月省级值）/上月省级值×100%；示例 8 月对 7 月。",
+      "sql": "SELECT COALESCE(ROUND((m8.v - m7.v) * 100.0 / NULLIF(m7.v, 0), 2), 0) AS zbz\nFROM (\n    SELECT COUNT(1) AS v\n    FROM xxzy_dtshb\n    WHERE ywfsd = '广东省'\n      AND sxmc = '省级地图审核'\n      AND pzsj >= DATE '2026-08-01'\n      AND pzsj < DATE '2026-09-01'\n) m8,\n(\n    SELECT COUNT(1) AS v\n    FROM xxzy_dtshb\n    WHERE ywfsd = '广东省'\n      AND sxmc = '省级地图审核'\n      AND pzsj >= DATE '2026-07-01'\n      AND pzsj < DATE '2026-08-01'\n) m7;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 9,
+      "source_cells": {
+        "name": "A9",
+        "code": "B9",
+        "unit": "C9",
+        "definition": "D9",
+        "sql": "E9",
+        "note": "F9"
+      },
+      "tables": [
+        "xxzy_dtshb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "DTSH_02_05",
+      "name": "本年度省级地图审核批准案卷数量_占比",
+      "unit": "%",
+      "definition": "省级累计案卷量 / 同期地图审核批准案卷总量（ywfsd='广东省'）×100%；示例同为 2026 年 1—8 月累计。",
+      "sql": "SELECT ROUND(num.v * 100.0 / NULLIF(den.v, 0), 2) AS zbz\nFROM (\n    SELECT COUNT(1) AS v\n    FROM xxzy_dtshb\n    WHERE ywfsd = '广东省'\n      AND sxmc = '省级地图审核'\n      AND pzsj >= DATE '2026-01-01'\n      AND pzsj < DATE '2026-09-01'\n) num,\n(\n    SELECT COUNT(1) AS v\n    FROM xxzy_dtshb\n    WHERE ywfsd = '广东省'\n      AND pzsj >= DATE '2026-01-01'\n      AND pzsj < DATE '2026-09-01'\n) den;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 10,
+      "source_cells": {
+        "name": "A10",
+        "code": "B10",
+        "unit": "C10",
+        "definition": "D10",
+        "sql": "E10",
+        "note": "F10"
+      },
+      "tables": [
+        "xxzy_dtshb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "DTSH_03_01",
+      "name": "本年度部委托地图审核批准案卷数量",
+      "unit": "件",
+      "definition": "批准时间在 2026-01-01 至 2026-08-31、ywfsd 为“广东省”且 sxmc 为“部委托地图审核”的案卷数。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM xxzy_dtshb\nWHERE ywfsd = '广东省'\n  AND sxmc = '部委托地图审核'\n  AND pzsj >= DATE '2026-01-01'\n  AND pzsj < DATE '2026-09-01';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 11,
+      "source_cells": {
+        "name": "A11",
+        "code": "B11",
+        "unit": "C11",
+        "definition": "D11",
+        "sql": "E11",
+        "note": "F11"
+      },
+      "tables": [
+        "xxzy_dtshb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "DTSH_03_02",
+      "name": "本年度部委托地图审核批准案卷数量_同比",
+      "unit": "%",
+      "definition": "（本年部委托累计−上年同期部委托累计）/上年同期部委托累计×100%；示例 2026 年 1—8 月对 2025 年 1—8 月。",
+      "sql": "SELECT COALESCE(ROUND((cur.v - base.v) * 100.0 / NULLIF(base.v, 0), 2), 0) AS zbz\nFROM (\n    SELECT COUNT(1) AS v\n    FROM xxzy_dtshb\n    WHERE ywfsd = '广东省'\n      AND sxmc = '部委托地图审核'\n      AND pzsj >= DATE '2026-01-01'\n      AND pzsj < DATE '2026-09-01'\n) cur,\n(\n    SELECT COUNT(1) AS v\n    FROM xxzy_dtshb\n    WHERE ywfsd = '广东省'\n      AND sxmc = '部委托地图审核'\n      AND pzsj >= DATE '2025-01-01'\n      AND pzsj < DATE '2025-09-01'\n) base;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 12,
+      "source_cells": {
+        "name": "A12",
+        "code": "B12",
+        "unit": "C12",
+        "definition": "D12",
+        "sql": "E12",
+        "note": "F12"
+      },
+      "tables": [
+        "xxzy_dtshb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "DTSH_03_03",
+      "name": "当月部委托地图审核批准案卷数量",
+      "unit": "件",
+      "definition": "批准时间在 2026 年 8 月、审核层级为“部委托”（sxmc='部委托地图审核'）的案卷数。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM xxzy_dtshb\nWHERE ywfsd = '广东省'\n  AND sxmc = '部委托地图审核'\n  AND pzsj >= DATE '2026-08-01'\n  AND pzsj < DATE '2026-09-01';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 13,
+      "source_cells": {
+        "name": "A13",
+        "code": "B13",
+        "unit": "C13",
+        "definition": "D13",
+        "sql": "E13",
+        "note": "F13"
+      },
+      "tables": [
+        "xxzy_dtshb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "DTSH_03_04",
+      "name": "当月部委托地图审核批准案卷数量_环比",
+      "unit": "%",
+      "definition": "（本月部委托值−上月部委托值）/上月部委托值×100%；示例 8 月对 7 月。",
+      "sql": "SELECT COALESCE(ROUND((m8.v - m7.v) * 100.0 / NULLIF(m7.v, 0), 2), 0) AS zbz\nFROM (\n    SELECT COUNT(1) AS v\n    FROM xxzy_dtshb\n    WHERE ywfsd = '广东省'\n      AND sxmc = '部委托地图审核'\n      AND pzsj >= DATE '2026-08-01'\n      AND pzsj < DATE '2026-09-01'\n) m8,\n(\n    SELECT COUNT(1) AS v\n    FROM xxzy_dtshb\n    WHERE ywfsd = '广东省'\n      AND sxmc = '部委托地图审核'\n      AND pzsj >= DATE '2026-07-01'\n      AND pzsj < DATE '2026-08-01'\n) m7;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 14,
+      "source_cells": {
+        "name": "A14",
+        "code": "B14",
+        "unit": "C14",
+        "definition": "D14",
+        "sql": "E14",
+        "note": "F14"
+      },
+      "tables": [
+        "xxzy_dtshb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "DTSH_03_05",
+      "name": "本年度部委托地图审核批准案卷数量_占比",
+      "unit": "%",
+      "definition": "部委托累计案卷量 / 同期地图审核批准案卷总量（ywfsd='广东省'）×100%；示例同为 2026 年 1—8 月累计。",
+      "sql": "SELECT ROUND(num.v * 100.0 / NULLIF(den.v, 0), 2) AS zbz\nFROM (\n    SELECT COUNT(1) AS v\n    FROM xxzy_dtshb\n    WHERE ywfsd = '广东省'\n      AND sxmc = '部委托地图审核'\n      AND pzsj >= DATE '2026-01-01'\n      AND pzsj < DATE '2026-09-01'\n) num,\n(\n    SELECT COUNT(1) AS v\n    FROM xxzy_dtshb\n    WHERE ywfsd = '广东省'\n      AND pzsj >= DATE '2026-01-01'\n      AND pzsj < DATE '2026-09-01'\n) den;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 15,
+      "source_cells": {
+        "name": "A15",
+        "code": "B15",
+        "unit": "C15",
+        "definition": "D15",
+        "sql": "E15",
+        "note": "F15"
+      },
+      "tables": [
+        "xxzy_dtshb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "DTSH_04_01",
+      "name": "本年度地图审核批准案卷数量_地图（集、册、单幅）",
+      "unit": "件",
+      "definition": "批准时间在 2026-01-01 至 2026-08-31、ywfsd 为“广东省”且地图形式（dtxs）为“地图（集、册、单幅）”的案卷数；示例为年初至 8 月末累计。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM xxzy_dtshb\nWHERE ywfsd = '广东省'\n  AND dtxs = '地图（集、册、单幅）'\n  AND pzsj >= DATE '2026-01-01'\n  AND pzsj < DATE '2026-09-01';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 16,
+      "source_cells": {
+        "name": "A16",
+        "code": "B16",
+        "unit": "C16",
+        "definition": "D16",
+        "sql": "E16",
+        "note": "F16"
+      },
+      "tables": [
+        "xxzy_dtshb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "DTSH_04_02",
+      "name": "本年度地图审核批准案卷数量_图书期刊报纸插附地图",
+      "unit": "件",
+      "definition": "批准时间在 2026-01-01 至 2026-08-31、ywfsd 为“广东省”且地图形式（dtxs）为“图书期刊报纸插附地图”的案卷数；示例为年初至 8 月末累计。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM xxzy_dtshb\nWHERE ywfsd = '广东省'\n  AND dtxs = '图书期刊报纸插附地图'\n  AND pzsj >= DATE '2026-01-01'\n  AND pzsj < DATE '2026-09-01';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 17,
+      "source_cells": {
+        "name": "A17",
+        "code": "B17",
+        "unit": "C17",
+        "definition": "D17",
+        "sql": "E17",
+        "note": "F17"
+      },
+      "tables": [
+        "xxzy_dtshb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "DTSH_04_03",
+      "name": "本年度地图审核批准案卷数量_地球仪",
+      "unit": "件",
+      "definition": "批准时间在 2026-01-01 至 2026-08-31、ywfsd 为“广东省”且地图形式（dtxs）为“地球仪”的案卷数；示例为年初至 8 月末累计。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM xxzy_dtshb\nWHERE ywfsd = '广东省'\n  AND dtxs = '地球仪'\n  AND pzsj >= DATE '2026-01-01'\n  AND pzsj < DATE '2026-09-01';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 18,
+      "source_cells": {
+        "name": "A18",
+        "code": "B18",
+        "unit": "C18",
+        "definition": "D18",
+        "sql": "E18",
+        "note": "F18"
+      },
+      "tables": [
+        "xxzy_dtshb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "DTSH_04_04",
+      "name": "本年度地图审核批准案卷数量_互联网地图",
+      "unit": "件",
+      "definition": "批准时间在 2026-01-01 至 2026-08-31、ywfsd 为“广东省”且地图形式（dtxs）为“互联网地图”的案卷数；示例为年初至 8 月末累计。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM xxzy_dtshb\nWHERE ywfsd = '广东省'\n  AND dtxs = '互联网地图'\n  AND pzsj >= DATE '2026-01-01'\n  AND pzsj < DATE '2026-09-01';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 19,
+      "source_cells": {
+        "name": "A19",
+        "code": "B19",
+        "unit": "C19",
+        "definition": "D19",
+        "sql": "E19",
+        "note": "F19"
+      },
+      "tables": [
+        "xxzy_dtshb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "DTSH_04_05",
+      "name": "本年度地图审核批准案卷数量_导航电子地图",
+      "unit": "件",
+      "definition": "批准时间在 2026-01-01 至 2026-08-31、ywfsd 为“广东省”且地图形式（dtxs）为“导航电子地图”的案卷数；示例为年初至 8 月末累计。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM xxzy_dtshb\nWHERE ywfsd = '广东省'\n  AND dtxs = '导航电子地图'\n  AND pzsj >= DATE '2026-01-01'\n  AND pzsj < DATE '2026-09-01';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 20,
+      "source_cells": {
+        "name": "A20",
+        "code": "B20",
+        "unit": "C20",
+        "definition": "D20",
+        "sql": "E20",
+        "note": "F20"
+      },
+      "tables": [
+        "xxzy_dtshb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "DTSH_04_06",
+      "name": "本年度地图审核批准案卷数量_其他产品",
+      "unit": "件",
+      "definition": "批准时间在 2026-01-01 至 2026-08-31、ywfsd 为“广东省”且地图形式（dtxs）为“其他产品”的案卷数；示例为年初至 8 月末累计。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM xxzy_dtshb\nWHERE ywfsd = '广东省'\n  AND dtxs = '其他产品'\n  AND pzsj >= DATE '2026-01-01'\n  AND pzsj < DATE '2026-09-01';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 21,
+      "source_cells": {
+        "name": "A21",
+        "code": "B21",
+        "unit": "C21",
+        "definition": "D21",
+        "sql": "E21",
+        "note": "F21"
+      },
+      "tables": [
+        "xxzy_dtshb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "DTSH_04_07",
+      "name": "本年度地图审核批准案卷数量_地图（集、册、单幅）_占比",
+      "unit": "%",
+      "definition": "地图形式为“地图（集、册、单幅）”的累计案卷量 / 同期地图审核批准案卷总量（ywfsd='广东省'）×100%；示例为 2026 年 1—8 月累计。",
+      "sql": "SELECT ROUND(num.v * 100.0 / NULLIF(den.v, 0), 2) AS zbz\nFROM (\n    SELECT COUNT(1) AS v\n    FROM xxzy_dtshb\n    WHERE ywfsd = '广东省'\n      AND dtxs = '地图（集、册、单幅）'\n      AND pzsj >= DATE '2026-01-01'\n      AND pzsj < DATE '2026-09-01'\n) num,\n(\n    SELECT COUNT(1) AS v\n    FROM xxzy_dtshb\n    WHERE ywfsd = '广东省'\n      AND pzsj >= DATE '2026-01-01'\n      AND pzsj < DATE '2026-09-01'\n) den;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 22,
+      "source_cells": {
+        "name": "A22",
+        "code": "B22",
+        "unit": "C22",
+        "definition": "D22",
+        "sql": "E22",
+        "note": "F22"
+      },
+      "tables": [
+        "xxzy_dtshb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "DTSH_04_08",
+      "name": "本年度地图审核批准案卷数量_图书期刊报纸插附地图_占比",
+      "unit": "%",
+      "definition": "地图形式为“图书期刊报纸插附地图”的累计案卷量 / 同期地图审核批准案卷总量（ywfsd='广东省'）×100%；示例为 2026 年 1—8 月累计。",
+      "sql": "SELECT ROUND(num.v * 100.0 / NULLIF(den.v, 0), 2) AS zbz\nFROM (\n    SELECT COUNT(1) AS v\n    FROM xxzy_dtshb\n    WHERE ywfsd = '广东省'\n      AND dtxs = '图书期刊报纸插附地图'\n      AND pzsj >= DATE '2026-01-01'\n      AND pzsj < DATE '2026-09-01'\n) num,\n(\n    SELECT COUNT(1) AS v\n    FROM xxzy_dtshb\n    WHERE ywfsd = '广东省'\n      AND pzsj >= DATE '2026-01-01'\n      AND pzsj < DATE '2026-09-01'\n) den;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 23,
+      "source_cells": {
+        "name": "A23",
+        "code": "B23",
+        "unit": "C23",
+        "definition": "D23",
+        "sql": "E23",
+        "note": "F23"
+      },
+      "tables": [
+        "xxzy_dtshb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "DTSH_04_09",
+      "name": "本年度地图审核批准案卷数量_地球仪_占比",
+      "unit": "%",
+      "definition": "地图形式为“地球仪”的累计案卷量 / 同期地图审核批准案卷总量（ywfsd='广东省'）×100%；示例为 2026 年 1—8 月累计。",
+      "sql": "SELECT ROUND(num.v * 100.0 / NULLIF(den.v, 0), 2) AS zbz\nFROM (\n    SELECT COUNT(1) AS v\n    FROM xxzy_dtshb\n    WHERE ywfsd = '广东省'\n      AND dtxs = '地球仪'\n      AND pzsj >= DATE '2026-01-01'\n      AND pzsj < DATE '2026-09-01'\n) num,\n(\n    SELECT COUNT(1) AS v\n    FROM xxzy_dtshb\n    WHERE ywfsd = '广东省'\n      AND pzsj >= DATE '2026-01-01'\n      AND pzsj < DATE '2026-09-01'\n) den;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 24,
+      "source_cells": {
+        "name": "A24",
+        "code": "B24",
+        "unit": "C24",
+        "definition": "D24",
+        "sql": "E24",
+        "note": "F24"
+      },
+      "tables": [
+        "xxzy_dtshb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "DTSH_04_10",
+      "name": "本年度地图审核批准案卷数量_互联网地图_占比",
+      "unit": "%",
+      "definition": "地图形式为“互联网地图”的累计案卷量 / 同期地图审核批准案卷总量（ywfsd='广东省'）×100%；示例为 2026 年 1—8 月累计。",
+      "sql": "SELECT ROUND(num.v * 100.0 / NULLIF(den.v, 0), 2) AS zbz\nFROM (\n    SELECT COUNT(1) AS v\n    FROM xxzy_dtshb\n    WHERE ywfsd = '广东省'\n      AND dtxs = '互联网地图'\n      AND pzsj >= DATE '2026-01-01'\n      AND pzsj < DATE '2026-09-01'\n) num,\n(\n    SELECT COUNT(1) AS v\n    FROM xxzy_dtshb\n    WHERE ywfsd = '广东省'\n      AND pzsj >= DATE '2026-01-01'\n      AND pzsj < DATE '2026-09-01'\n) den;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 25,
+      "source_cells": {
+        "name": "A25",
+        "code": "B25",
+        "unit": "C25",
+        "definition": "D25",
+        "sql": "E25",
+        "note": "F25"
+      },
+      "tables": [
+        "xxzy_dtshb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "DTSH_04_11",
+      "name": "本年度地图审核批准案卷数量_导航电子地图_占比",
+      "unit": "%",
+      "definition": "地图形式为“导航电子地图”的累计案卷量 / 同期地图审核批准案卷总量（ywfsd='广东省'）×100%；示例为 2026 年 1—8 月累计。",
+      "sql": "SELECT ROUND(num.v * 100.0 / NULLIF(den.v, 0), 2) AS zbz\nFROM (\n    SELECT COUNT(1) AS v\n    FROM xxzy_dtshb\n    WHERE ywfsd = '广东省'\n      AND dtxs = '导航电子地图'\n      AND pzsj >= DATE '2026-01-01'\n      AND pzsj < DATE '2026-09-01'\n) num,\n(\n    SELECT COUNT(1) AS v\n    FROM xxzy_dtshb\n    WHERE ywfsd = '广东省'\n      AND pzsj >= DATE '2026-01-01'\n      AND pzsj < DATE '2026-09-01'\n) den;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 26,
+      "source_cells": {
+        "name": "A26",
+        "code": "B26",
+        "unit": "C26",
+        "definition": "D26",
+        "sql": "E26",
+        "note": "F26"
+      },
+      "tables": [
+        "xxzy_dtshb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "DTSH_04_12",
+      "name": "本年度地图审核批准案卷数量_其他产品_占比",
+      "unit": "%",
+      "definition": "地图形式为“其他产品”的累计案卷量 / 同期地图审核批准案卷总量（ywfsd='广东省'）×100%；示例为 2026 年 1—8 月累计。",
+      "sql": "SELECT ROUND(num.v * 100.0 / NULLIF(den.v, 0), 2) AS zbz\nFROM (\n    SELECT COUNT(1) AS v\n    FROM xxzy_dtshb\n    WHERE ywfsd = '广东省'\n      AND dtxs = '其他产品'\n      AND pzsj >= DATE '2026-01-01'\n      AND pzsj < DATE '2026-09-01'\n) num,\n(\n    SELECT COUNT(1) AS v\n    FROM xxzy_dtshb\n    WHERE ywfsd = '广东省'\n      AND pzsj >= DATE '2026-01-01'\n      AND pzsj < DATE '2026-09-01'\n) den;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 27,
+      "source_cells": {
+        "name": "A27",
+        "code": "B27",
+        "unit": "C27",
+        "definition": "D27",
+        "sql": "E27",
+        "note": "F27"
+      },
+      "tables": [
+        "xxzy_dtshb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CGSP_01_01",
+      "name": "本年度测绘成果利用审批批准案卷数量",
+      "unit": "件",
+      "definition": "批准时间（pzsj）在 2026-01-01 至 2026-08-31、所在区域（szqy）为“广东省”的测绘成果利用审批案卷数。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM xxzy_cgspb\nWHERE szqy = '广东省'\n  AND pzsj >= DATE '2026-01-01'\n  AND pzsj < DATE '2026-09-01';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 28,
+      "source_cells": {
+        "name": "A28",
+        "code": "B28",
+        "unit": "C28",
+        "definition": "D28",
+        "sql": "E28",
+        "note": "F28"
+      },
+      "tables": [
+        "xxzy_cgspb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CGSP_01_02",
+      "name": "本年度测绘成果利用审批批准案卷数量_同比",
+      "unit": "%",
+      "definition": "（本年累计−上年同期累计）/上年同期累计×100%；示例 2026 年 1—8 月对 2025 年 1—8 月。",
+      "sql": "SELECT COALESCE(ROUND((cur.v - base.v) * 100.0 / NULLIF(base.v, 0), 2), 0) AS zbz\nFROM (\n    SELECT COUNT(1) AS v\n    FROM xxzy_cgspb\n    WHERE szqy = '广东省'\n      AND pzsj >= DATE '2026-01-01'\n      AND pzsj < DATE '2026-09-01'\n) cur,\n(\n    SELECT COUNT(1) AS v\n    FROM xxzy_cgspb\n    WHERE szqy = '广东省'\n      AND pzsj >= DATE '2025-01-01'\n      AND pzsj < DATE '2025-09-01'\n) base;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 29,
+      "source_cells": {
+        "name": "A29",
+        "code": "B29",
+        "unit": "C29",
+        "definition": "D29",
+        "sql": "E29",
+        "note": "F29"
+      },
+      "tables": [
+        "xxzy_cgspb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CGSP_01_03",
+      "name": "当月测绘成果利用审批批准案卷数量",
+      "unit": "件",
+      "definition": "批准时间在 2026 年 8 月的测绘成果利用审批案卷数。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM xxzy_cgspb\nWHERE szqy = '广东省'\n  AND pzsj >= DATE '2026-08-01'\n  AND pzsj < DATE '2026-09-01';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 30,
+      "source_cells": {
+        "name": "A30",
+        "code": "B30",
+        "unit": "C30",
+        "definition": "D30",
+        "sql": "E30",
+        "note": "F30"
+      },
+      "tables": [
+        "xxzy_cgspb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CGSP_01_04",
+      "name": "当月测绘成果利用审批批准案卷数量_环比",
+      "unit": "%",
+      "definition": "（本月值−上月值）/上月值×100%；示例 8 月对 7 月。",
+      "sql": "SELECT COALESCE(ROUND((m8.v - m7.v) * 100.0 / NULLIF(m7.v, 0), 2), 0) AS zbz\nFROM (\n    SELECT COUNT(1) AS v\n    FROM xxzy_cgspb\n    WHERE szqy = '广东省'\n      AND pzsj >= DATE '2026-08-01'\n      AND pzsj < DATE '2026-09-01'\n) m8,\n(\n    SELECT COUNT(1) AS v\n    FROM xxzy_cgspb\n    WHERE szqy = '广东省'\n      AND pzsj >= DATE '2026-07-01'\n      AND pzsj < DATE '2026-08-01'\n) m7;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 31,
+      "source_cells": {
+        "name": "A31",
+        "code": "B31",
+        "unit": "C31",
+        "definition": "D31",
+        "sql": "E31",
+        "note": "F31"
+      },
+      "tables": [
+        "xxzy_cgspb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CGSP_02_01",
+      "name": "本年度测绘成果利用审批(面向企事业单位非首次申请)批准案卷数量",
+      "unit": "件",
+      "definition": "批准时间在 2026-01-01 至 2026-08-31、szqy='广东省' 且 sxmc 为“...-面向企事业单位非首次申请”的案卷数。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM xxzy_cgspb\nWHERE szqy = '广东省'\n  AND sxmc = '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位非首次申请'\n  AND pzsj >= DATE '2026-01-01'\n  AND pzsj < DATE '2026-09-01';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 32,
+      "source_cells": {
+        "name": "A32",
+        "code": "B32",
+        "unit": "C32",
+        "definition": "D32",
+        "sql": "E32",
+        "note": "F32"
+      },
+      "tables": [
+        "xxzy_cgspb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CGSP_02_02",
+      "name": "本年度测绘成果利用审批(面向企事业单位非首次申请)批准案卷数量_同比",
+      "unit": "%",
+      "definition": "（本年累计−上年同期累计）/上年同期累计×100%；示例 2026 年 1—8 月对 2025 年 1—8 月。",
+      "sql": "SELECT COALESCE(ROUND((cur.v - base.v) * 100.0 / NULLIF(base.v, 0), 2), 0) AS zbz\nFROM (\n    SELECT COUNT(1) AS v\n    FROM xxzy_cgspb\n    WHERE szqy = '广东省'\n      AND sxmc = '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位非首次申请'\n      AND pzsj >= DATE '2026-01-01'\n      AND pzsj < DATE '2026-09-01'\n) cur,\n(\n    SELECT COUNT(1) AS v\n    FROM xxzy_cgspb\n    WHERE szqy = '广东省'\n      AND sxmc = '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位非首次申请'\n      AND pzsj >= DATE '2025-01-01'\n      AND pzsj < DATE '2025-09-01'\n) base;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 33,
+      "source_cells": {
+        "name": "A33",
+        "code": "B33",
+        "unit": "C33",
+        "definition": "D33",
+        "sql": "E33",
+        "note": "F33"
+      },
+      "tables": [
+        "xxzy_cgspb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CGSP_02_03",
+      "name": "当月测绘成果利用审批(面向企事业单位非首次申请)批准案卷数量",
+      "unit": "件",
+      "definition": "批准时间在 2026 年 8 月、sxmc 为“...-面向企事业单位非首次申请”的案卷数。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM xxzy_cgspb\nWHERE szqy = '广东省'\n  AND sxmc = '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位非首次申请'\n  AND pzsj >= DATE '2026-08-01'\n  AND pzsj < DATE '2026-09-01';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 34,
+      "source_cells": {
+        "name": "A34",
+        "code": "B34",
+        "unit": "C34",
+        "definition": "D34",
+        "sql": "E34",
+        "note": "F34"
+      },
+      "tables": [
+        "xxzy_cgspb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CGSP_02_04",
+      "name": "当月测绘成果利用审批(面向企事业单位非首次申请)批准案卷数量_环比",
+      "unit": "%",
+      "definition": "（本月值−上月值）/上月值×100%；示例 8 月对 7 月。",
+      "sql": "SELECT COALESCE(ROUND((m8.v - m7.v) * 100.0 / NULLIF(m7.v, 0), 2), 0) AS zbz\nFROM (\n    SELECT COUNT(1) AS v\n    FROM xxzy_cgspb\n    WHERE szqy = '广东省'\n      AND sxmc = '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位非首次申请'\n      AND pzsj >= DATE '2026-08-01'\n      AND pzsj < DATE '2026-09-01'\n) m8,\n(\n    SELECT COUNT(1) AS v\n    FROM xxzy_cgspb\n    WHERE szqy = '广东省'\n      AND sxmc = '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位非首次申请'\n      AND pzsj >= DATE '2026-07-01'\n      AND pzsj < DATE '2026-08-01'\n) m7;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 35,
+      "source_cells": {
+        "name": "A35",
+        "code": "B35",
+        "unit": "C35",
+        "definition": "D35",
+        "sql": "E35",
+        "note": "F35"
+      },
+      "tables": [
+        "xxzy_cgspb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CGSP_02_05",
+      "name": "本年度测绘成果利用审批批准案卷数量_面向企事业单位非首次申请_占比",
+      "unit": "%",
+      "definition": "“面向企事业单位非首次申请”累计案卷量 / 同期三类审批事项累计总量×100%；示例为 2026 年 1—8 月累计。",
+      "sql": "SELECT ROUND(num.v * 100.0 / NULLIF(den.v, 0), 2) AS zbz\nFROM (\n    SELECT COUNT(1) AS v\n    FROM xxzy_cgspb\n    WHERE szqy = '广东省'\n      AND sxmc = '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位非首次申请'\n      AND pzsj >= DATE '2026-01-01'\n      AND pzsj < DATE '2026-09-01'\n) num,\n(\n    SELECT COUNT(1) AS v\n    FROM xxzy_cgspb\n    WHERE szqy = '广东省'\n      AND sxmc IN (\n                '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位非首次申请',\n                '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位首次申请',\n                '申请本行政辖区属于国家秘密基础测绘成果审批-面向政府部门'\n            )\n      AND pzsj >= DATE '2026-01-01'\n      AND pzsj < DATE '2026-09-01'\n) den;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 36,
+      "source_cells": {
+        "name": "A36",
+        "code": "B36",
+        "unit": "C36",
+        "definition": "D36",
+        "sql": "E36",
+        "note": "F36"
+      },
+      "tables": [
+        "xxzy_cgspb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CGSP_03_01",
+      "name": "本年度测绘成果利用审批(面向企事业单位首次申请)批准案卷数量",
+      "unit": "件",
+      "definition": "批准时间在 2026-01-01 至 2026-08-31、szqy='广东省' 且 sxmc 为“...-面向企事业单位首次申请”的案卷数。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM xxzy_cgspb\nWHERE szqy = '广东省'\n  AND sxmc = '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位首次申请'\n  AND pzsj >= DATE '2026-01-01'\n  AND pzsj < DATE '2026-09-01';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 37,
+      "source_cells": {
+        "name": "A37",
+        "code": "B37",
+        "unit": "C37",
+        "definition": "D37",
+        "sql": "E37",
+        "note": "F37"
+      },
+      "tables": [
+        "xxzy_cgspb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CGSP_03_02",
+      "name": "本年度测绘成果利用审批(面向企事业单位首次申请)批准案卷数量_同比",
+      "unit": "%",
+      "definition": "（本年累计−上年同期累计）/上年同期累计×100%；示例 2026 年 1—8 月对 2025 年 1—8 月。",
+      "sql": "SELECT COALESCE(ROUND((cur.v - base.v) * 100.0 / NULLIF(base.v, 0), 2), 0) AS zbz\nFROM (\n    SELECT COUNT(1) AS v\n    FROM xxzy_cgspb\n    WHERE szqy = '广东省'\n      AND sxmc = '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位首次申请'\n      AND pzsj >= DATE '2026-01-01'\n      AND pzsj < DATE '2026-09-01'\n) cur,\n(\n    SELECT COUNT(1) AS v\n    FROM xxzy_cgspb\n    WHERE szqy = '广东省'\n      AND sxmc = '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位首次申请'\n      AND pzsj >= DATE '2025-01-01'\n      AND pzsj < DATE '2025-09-01'\n) base;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 38,
+      "source_cells": {
+        "name": "A38",
+        "code": "B38",
+        "unit": "C38",
+        "definition": "D38",
+        "sql": "E38",
+        "note": "F38"
+      },
+      "tables": [
+        "xxzy_cgspb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CGSP_03_03",
+      "name": "当月测绘成果利用审批(面向企事业单位首次申请)批准案卷数量",
+      "unit": "件",
+      "definition": "批准时间在 2026 年 8 月、sxmc 为“...-面向企事业单位首次申请”的案卷数。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM xxzy_cgspb\nWHERE szqy = '广东省'\n  AND sxmc = '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位首次申请'\n  AND pzsj >= DATE '2026-08-01'\n  AND pzsj < DATE '2026-09-01';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 39,
+      "source_cells": {
+        "name": "A39",
+        "code": "B39",
+        "unit": "C39",
+        "definition": "D39",
+        "sql": "E39",
+        "note": "F39"
+      },
+      "tables": [
+        "xxzy_cgspb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CGSP_03_04",
+      "name": "当月测绘成果利用审批(面向企事业单位首次申请)批准案卷数量_环比",
+      "unit": "%",
+      "definition": "（本月值−上月值）/上月值×100%；示例 8 月对 7 月。",
+      "sql": "SELECT COALESCE(ROUND((m8.v - m7.v) * 100.0 / NULLIF(m7.v, 0), 2), 0) AS zbz\nFROM (\n    SELECT COUNT(1) AS v\n    FROM xxzy_cgspb\n    WHERE szqy = '广东省'\n      AND sxmc = '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位首次申请'\n      AND pzsj >= DATE '2026-08-01'\n      AND pzsj < DATE '2026-09-01'\n) m8,\n(\n    SELECT COUNT(1) AS v\n    FROM xxzy_cgspb\n    WHERE szqy = '广东省'\n      AND sxmc = '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位首次申请'\n      AND pzsj >= DATE '2026-07-01'\n      AND pzsj < DATE '2026-08-01'\n) m7;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 40,
+      "source_cells": {
+        "name": "A40",
+        "code": "B40",
+        "unit": "C40",
+        "definition": "D40",
+        "sql": "E40",
+        "note": "F40"
+      },
+      "tables": [
+        "xxzy_cgspb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CGSP_03_05",
+      "name": "本年度测绘成果利用审批批准案卷数量_面向企事业单位首次申请_占比",
+      "unit": "%",
+      "definition": "“面向企事业单位首次申请”累计案卷量 / 同期三类审批事项累计总量×100%；示例为 2026 年 1—8 月累计。",
+      "sql": "SELECT ROUND(num.v * 100.0 / NULLIF(den.v, 0), 2) AS zbz\nFROM (\n    SELECT COUNT(1) AS v\n    FROM xxzy_cgspb\n    WHERE szqy = '广东省'\n      AND sxmc = '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位首次申请'\n      AND pzsj >= DATE '2026-01-01'\n      AND pzsj < DATE '2026-09-01'\n) num,\n(\n    SELECT COUNT(1) AS v\n    FROM xxzy_cgspb\n    WHERE szqy = '广东省'\n      AND sxmc IN (\n                '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位非首次申请',\n                '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位首次申请',\n                '申请本行政辖区属于国家秘密基础测绘成果审批-面向政府部门'\n            )\n      AND pzsj >= DATE '2026-01-01'\n      AND pzsj < DATE '2026-09-01'\n) den;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 41,
+      "source_cells": {
+        "name": "A41",
+        "code": "B41",
+        "unit": "C41",
+        "definition": "D41",
+        "sql": "E41",
+        "note": "F41"
+      },
+      "tables": [
+        "xxzy_cgspb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CGSP_04_01",
+      "name": "本年度测绘成果利用审批(面向政府部门)批准案卷数量",
+      "unit": "件",
+      "definition": "批准时间在 2026-01-01 至 2026-08-31、szqy='广东省' 且 sxmc 为“...-面向政府部门”的案卷数。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM xxzy_cgspb\nWHERE szqy = '广东省'\n  AND sxmc = '申请本行政辖区属于国家秘密基础测绘成果审批-面向政府部门'\n  AND pzsj >= DATE '2026-01-01'\n  AND pzsj < DATE '2026-09-01';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 42,
+      "source_cells": {
+        "name": "A42",
+        "code": "B42",
+        "unit": "C42",
+        "definition": "D42",
+        "sql": "E42",
+        "note": "F42"
+      },
+      "tables": [
+        "xxzy_cgspb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CGSP_04_02",
+      "name": "本年度测绘成果利用审批(面向政府部门)批准案卷数量_同比",
+      "unit": "%",
+      "definition": "（本年累计−上年同期累计）/上年同期累计×100%；示例 2026 年 1—8 月对 2025 年 1—8 月。",
+      "sql": "SELECT COALESCE(ROUND((cur.v - base.v) * 100.0 / NULLIF(base.v, 0), 2), 0) AS zbz\nFROM (\n    SELECT COUNT(1) AS v\n    FROM xxzy_cgspb\n    WHERE szqy = '广东省'\n      AND sxmc = '申请本行政辖区属于国家秘密基础测绘成果审批-面向政府部门'\n      AND pzsj >= DATE '2026-01-01'\n      AND pzsj < DATE '2026-09-01'\n) cur,\n(\n    SELECT COUNT(1) AS v\n    FROM xxzy_cgspb\n    WHERE szqy = '广东省'\n      AND sxmc = '申请本行政辖区属于国家秘密基础测绘成果审批-面向政府部门'\n      AND pzsj >= DATE '2025-01-01'\n      AND pzsj < DATE '2025-09-01'\n) base;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 43,
+      "source_cells": {
+        "name": "A43",
+        "code": "B43",
+        "unit": "C43",
+        "definition": "D43",
+        "sql": "E43",
+        "note": "F43"
+      },
+      "tables": [
+        "xxzy_cgspb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CGSP_04_03",
+      "name": "当月测绘成果利用审批(面向政府部门)批准案卷数量",
+      "unit": "件",
+      "definition": "批准时间在 2026 年 8 月、sxmc 为“...-面向政府部门”的案卷数。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM xxzy_cgspb\nWHERE szqy = '广东省'\n  AND sxmc = '申请本行政辖区属于国家秘密基础测绘成果审批-面向政府部门'\n  AND pzsj >= DATE '2026-08-01'\n  AND pzsj < DATE '2026-09-01';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 44,
+      "source_cells": {
+        "name": "A44",
+        "code": "B44",
+        "unit": "C44",
+        "definition": "D44",
+        "sql": "E44",
+        "note": "F44"
+      },
+      "tables": [
+        "xxzy_cgspb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CGSP_04_04",
+      "name": "当月测绘成果利用审批(面向政府部门)批准案卷数量_环比",
+      "unit": "%",
+      "definition": "（本月值−上月值）/上月值×100%；示例 8 月对 7 月。",
+      "sql": "SELECT COALESCE(ROUND((m8.v - m7.v) * 100.0 / NULLIF(m7.v, 0), 2), 0) AS zbz\nFROM (\n    SELECT COUNT(1) AS v\n    FROM xxzy_cgspb\n    WHERE szqy = '广东省'\n      AND sxmc = '申请本行政辖区属于国家秘密基础测绘成果审批-面向政府部门'\n      AND pzsj >= DATE '2026-08-01'\n      AND pzsj < DATE '2026-09-01'\n) m8,\n(\n    SELECT COUNT(1) AS v\n    FROM xxzy_cgspb\n    WHERE szqy = '广东省'\n      AND sxmc = '申请本行政辖区属于国家秘密基础测绘成果审批-面向政府部门'\n      AND pzsj >= DATE '2026-07-01'\n      AND pzsj < DATE '2026-08-01'\n) m7;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 45,
+      "source_cells": {
+        "name": "A45",
+        "code": "B45",
+        "unit": "C45",
+        "definition": "D45",
+        "sql": "E45",
+        "note": "F45"
+      },
+      "tables": [
+        "xxzy_cgspb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CGSP_04_05",
+      "name": "本年度测绘成果利用审批批准案卷数量_面向政府部门_占比",
+      "unit": "%",
+      "definition": "“面向政府部门”累计案卷量 / 同期三类审批事项累计总量×100%；示例为 2026 年 1—8 月累计。",
+      "sql": "SELECT ROUND(num.v * 100.0 / NULLIF(den.v, 0), 2) AS zbz\nFROM (\n    SELECT COUNT(1) AS v\n    FROM xxzy_cgspb\n    WHERE szqy = '广东省'\n      AND sxmc = '申请本行政辖区属于国家秘密基础测绘成果审批-面向政府部门'\n      AND pzsj >= DATE '2026-01-01'\n      AND pzsj < DATE '2026-09-01'\n) num,\n(\n    SELECT COUNT(1) AS v\n    FROM xxzy_cgspb\n    WHERE szqy = '广东省'\n      AND sxmc IN (\n                '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位非首次申请',\n                '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位首次申请',\n                '申请本行政辖区属于国家秘密基础测绘成果审批-面向政府部门'\n            )\n      AND pzsj >= DATE '2026-01-01'\n      AND pzsj < DATE '2026-09-01'\n) den;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 46,
+      "source_cells": {
+        "name": "A46",
+        "code": "B46",
+        "unit": "C46",
+        "definition": "D46",
+        "sql": "E46",
+        "note": "F46"
+      },
+      "tables": [
+        "xxzy_cgspb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CGSP_05_01",
+      "name": "本年度测绘成果利用审批批准案卷数量_自然资源",
+      "unit": "件",
+      "definition": "成果应用领域（cgyyly）以“自然资源”开头的累计案卷数（前缀匹配可覆盖“自然资源基建”“工业自然资源”等取值）；统计范围 szqy='广东省'、三类审批事项、2026-01-01 至 2026-08-31。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM xxzy_cgspb\nWHERE szqy = '广东省'\n  AND sxmc IN (\n            '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位非首次申请',\n            '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位首次申请',\n            '申请本行政辖区属于国家秘密基础测绘成果审批-面向政府部门'\n        )\n  AND cgyyly LIKE '自然资源%'\n  AND pzsj >= DATE '2026-01-01'\n  AND pzsj < DATE '2026-09-01';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 47,
+      "source_cells": {
+        "name": "A47",
+        "code": "B47",
+        "unit": "C47",
+        "definition": "D47",
+        "sql": "E47",
+        "note": "F47"
+      },
+      "tables": [
+        "xxzy_cgspb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CGSP_05_02",
+      "name": "本年度测绘成果利用审批批准案卷数量_交通",
+      "unit": "件",
+      "definition": "成果应用领域（cgyyly）以“交通”开头的累计案卷数（前缀匹配可覆盖“交通基建”“工业交通”等取值）；统计范围 szqy='广东省'、三类审批事项、2026-01-01 至 2026-08-31。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM xxzy_cgspb\nWHERE szqy = '广东省'\n  AND sxmc IN (\n            '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位非首次申请',\n            '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位首次申请',\n            '申请本行政辖区属于国家秘密基础测绘成果审批-面向政府部门'\n        )\n  AND cgyyly LIKE '交通%'\n  AND pzsj >= DATE '2026-01-01'\n  AND pzsj < DATE '2026-09-01';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 48,
+      "source_cells": {
+        "name": "A48",
+        "code": "B48",
+        "unit": "C48",
+        "definition": "D48",
+        "sql": "E48",
+        "note": "F48"
+      },
+      "tables": [
+        "xxzy_cgspb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CGSP_05_03",
+      "name": "本年度测绘成果利用审批批准案卷数量_能源",
+      "unit": "件",
+      "definition": "成果应用领域（cgyyly）以“能源”开头的累计案卷数（前缀匹配可覆盖“能源基建”“工业能源”等取值）；统计范围 szqy='广东省'、三类审批事项、2026-01-01 至 2026-08-31。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM xxzy_cgspb\nWHERE szqy = '广东省'\n  AND sxmc IN (\n            '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位非首次申请',\n            '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位首次申请',\n            '申请本行政辖区属于国家秘密基础测绘成果审批-面向政府部门'\n        )\n  AND cgyyly LIKE '能源%'\n  AND pzsj >= DATE '2026-01-01'\n  AND pzsj < DATE '2026-09-01';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 49,
+      "source_cells": {
+        "name": "A49",
+        "code": "B49",
+        "unit": "C49",
+        "definition": "D49",
+        "sql": "E49",
+        "note": "F49"
+      },
+      "tables": [
+        "xxzy_cgspb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CGSP_05_04",
+      "name": "本年度测绘成果利用审批批准案卷数量_水利",
+      "unit": "件",
+      "definition": "成果应用领域（cgyyly）以“水利”开头的累计案卷数（前缀匹配可覆盖“水利基建”“工业水利”等取值）；统计范围 szqy='广东省'、三类审批事项、2026-01-01 至 2026-08-31。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM xxzy_cgspb\nWHERE szqy = '广东省'\n  AND sxmc IN (\n            '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位非首次申请',\n            '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位首次申请',\n            '申请本行政辖区属于国家秘密基础测绘成果审批-面向政府部门'\n        )\n  AND cgyyly LIKE '水利%'\n  AND pzsj >= DATE '2026-01-01'\n  AND pzsj < DATE '2026-09-01';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 50,
+      "source_cells": {
+        "name": "A50",
+        "code": "B50",
+        "unit": "C50",
+        "definition": "D50",
+        "sql": "E50",
+        "note": "F50"
+      },
+      "tables": [
+        "xxzy_cgspb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CGSP_05_05",
+      "name": "本年度测绘成果利用审批批准案卷数量_其他",
+      "unit": "件",
+      "definition": "成果应用领域不属于自然资源、交通、能源、水利四类的累计案卷数；统计范围 szqy='广东省'、三类审批事项、2026-01-01 至 2026-08-31。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM xxzy_cgspb\nWHERE szqy = '广东省'\n  AND sxmc IN (\n            '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位非首次申请',\n            '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位首次申请',\n            '申请本行政辖区属于国家秘密基础测绘成果审批-面向政府部门'\n        )\n  AND cgyyly NOT LIKE '自然资源%'\n  AND cgyyly NOT LIKE '交通%'\n  AND cgyyly NOT LIKE '能源%'\n  AND cgyyly NOT LIKE '水利%'\n  AND pzsj >= DATE '2026-01-01'\n  AND pzsj < DATE '2026-09-01';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 51,
+      "source_cells": {
+        "name": "A51",
+        "code": "B51",
+        "unit": "C51",
+        "definition": "D51",
+        "sql": "E51",
+        "note": "F51"
+      },
+      "tables": [
+        "xxzy_cgspb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CGSP_05_06",
+      "name": "本年度测绘成果利用审批批准案卷数量_自然资源_占比",
+      "unit": "%",
+      "definition": "领域为“自然资源”的累计案卷量 / 同期三类审批事项累计总量×100%；示例为 2026 年 1—8 月累计。",
+      "sql": "SELECT ROUND(num.v * 100.0 / NULLIF(den.v, 0), 2) AS zbz\nFROM (\n    SELECT COUNT(1) AS v\n    FROM xxzy_cgspb\n    WHERE szqy = '广东省'\n      AND sxmc IN (\n                '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位非首次申请',\n                '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位首次申请',\n                '申请本行政辖区属于国家秘密基础测绘成果审批-面向政府部门'\n            )\n      AND cgyyly LIKE '自然资源%'\n      AND pzsj >= DATE '2026-01-01'\n      AND pzsj < DATE '2026-09-01'\n) num,\n(\n    SELECT COUNT(1) AS v\n    FROM xxzy_cgspb\n    WHERE szqy = '广东省'\n      AND sxmc IN (\n                '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位非首次申请',\n                '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位首次申请',\n                '申请本行政辖区属于国家秘密基础测绘成果审批-面向政府部门'\n            )\n      AND pzsj >= DATE '2026-01-01'\n      AND pzsj < DATE '2026-09-01'\n) den;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 52,
+      "source_cells": {
+        "name": "A52",
+        "code": "B52",
+        "unit": "C52",
+        "definition": "D52",
+        "sql": "E52",
+        "note": "F52"
+      },
+      "tables": [
+        "xxzy_cgspb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CGSP_05_07",
+      "name": "本年度测绘成果利用审批批准案卷数量_交通_占比",
+      "unit": "%",
+      "definition": "领域为“交通”的累计案卷量 / 同期三类审批事项累计总量×100%；示例为 2026 年 1—8 月累计。",
+      "sql": "SELECT ROUND(num.v * 100.0 / NULLIF(den.v, 0), 2) AS zbz\nFROM (\n    SELECT COUNT(1) AS v\n    FROM xxzy_cgspb\n    WHERE szqy = '广东省'\n      AND sxmc IN (\n                '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位非首次申请',\n                '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位首次申请',\n                '申请本行政辖区属于国家秘密基础测绘成果审批-面向政府部门'\n            )\n      AND cgyyly LIKE '交通%'\n      AND pzsj >= DATE '2026-01-01'\n      AND pzsj < DATE '2026-09-01'\n) num,\n(\n    SELECT COUNT(1) AS v\n    FROM xxzy_cgspb\n    WHERE szqy = '广东省'\n      AND sxmc IN (\n                '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位非首次申请',\n                '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位首次申请',\n                '申请本行政辖区属于国家秘密基础测绘成果审批-面向政府部门'\n            )\n      AND pzsj >= DATE '2026-01-01'\n      AND pzsj < DATE '2026-09-01'\n) den;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 53,
+      "source_cells": {
+        "name": "A53",
+        "code": "B53",
+        "unit": "C53",
+        "definition": "D53",
+        "sql": "E53",
+        "note": "F53"
+      },
+      "tables": [
+        "xxzy_cgspb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CGSP_05_08",
+      "name": "本年度测绘成果利用审批批准案卷数量_能源_占比",
+      "unit": "%",
+      "definition": "领域为“能源”的累计案卷量 / 同期三类审批事项累计总量×100%；示例为 2026 年 1—8 月累计。",
+      "sql": "SELECT ROUND(num.v * 100.0 / NULLIF(den.v, 0), 2) AS zbz\nFROM (\n    SELECT COUNT(1) AS v\n    FROM xxzy_cgspb\n    WHERE szqy = '广东省'\n      AND sxmc IN (\n                '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位非首次申请',\n                '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位首次申请',\n                '申请本行政辖区属于国家秘密基础测绘成果审批-面向政府部门'\n            )\n      AND cgyyly LIKE '能源%'\n      AND pzsj >= DATE '2026-01-01'\n      AND pzsj < DATE '2026-09-01'\n) num,\n(\n    SELECT COUNT(1) AS v\n    FROM xxzy_cgspb\n    WHERE szqy = '广东省'\n      AND sxmc IN (\n                '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位非首次申请',\n                '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位首次申请',\n                '申请本行政辖区属于国家秘密基础测绘成果审批-面向政府部门'\n            )\n      AND pzsj >= DATE '2026-01-01'\n      AND pzsj < DATE '2026-09-01'\n) den;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 54,
+      "source_cells": {
+        "name": "A54",
+        "code": "B54",
+        "unit": "C54",
+        "definition": "D54",
+        "sql": "E54",
+        "note": "F54"
+      },
+      "tables": [
+        "xxzy_cgspb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CGSP_05_09",
+      "name": "本年度测绘成果利用审批批准案卷数量_水利_占比",
+      "unit": "%",
+      "definition": "领域为“水利”的累计案卷量 / 同期三类审批事项累计总量×100%；示例为 2026 年 1—8 月累计。",
+      "sql": "SELECT ROUND(num.v * 100.0 / NULLIF(den.v, 0), 2) AS zbz\nFROM (\n    SELECT COUNT(1) AS v\n    FROM xxzy_cgspb\n    WHERE szqy = '广东省'\n      AND sxmc IN (\n                '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位非首次申请',\n                '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位首次申请',\n                '申请本行政辖区属于国家秘密基础测绘成果审批-面向政府部门'\n            )\n      AND cgyyly LIKE '水利%'\n      AND pzsj >= DATE '2026-01-01'\n      AND pzsj < DATE '2026-09-01'\n) num,\n(\n    SELECT COUNT(1) AS v\n    FROM xxzy_cgspb\n    WHERE szqy = '广东省'\n      AND sxmc IN (\n                '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位非首次申请',\n                '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位首次申请',\n                '申请本行政辖区属于国家秘密基础测绘成果审批-面向政府部门'\n            )\n      AND pzsj >= DATE '2026-01-01'\n      AND pzsj < DATE '2026-09-01'\n) den;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 55,
+      "source_cells": {
+        "name": "A55",
+        "code": "B55",
+        "unit": "C55",
+        "definition": "D55",
+        "sql": "E55",
+        "note": "F55"
+      },
+      "tables": [
+        "xxzy_cgspb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CGSP_05_10",
+      "name": "本年度测绘成果利用审批批准案卷数量_其他_占比",
+      "unit": "%",
+      "definition": "领域为“其他”的累计案卷量 / 同期三类审批事项累计总量×100%；示例为 2026 年 1—8 月累计。",
+      "sql": "SELECT ROUND(num.v * 100.0 / NULLIF(den.v, 0), 2) AS zbz\nFROM (\n    SELECT COUNT(1) AS v\n    FROM xxzy_cgspb\n    WHERE szqy = '广东省'\n      AND sxmc IN (\n                '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位非首次申请',\n                '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位首次申请',\n                '申请本行政辖区属于国家秘密基础测绘成果审批-面向政府部门'\n            )\n      AND cgyyly NOT LIKE '自然资源%'\n      AND cgyyly NOT LIKE '交通%'\n      AND cgyyly NOT LIKE '能源%'\n      AND cgyyly NOT LIKE '水利%'\n      AND pzsj >= DATE '2026-01-01'\n      AND pzsj < DATE '2026-09-01'\n) num,\n(\n    SELECT COUNT(1) AS v\n    FROM xxzy_cgspb\n    WHERE szqy = '广东省'\n      AND sxmc IN (\n                '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位非首次申请',\n                '申请本行政辖区属于国家秘密基础测绘成果审批-面向企事业单位首次申请',\n                '申请本行政辖区属于国家秘密基础测绘成果审批-面向政府部门'\n            )\n      AND pzsj >= DATE '2026-01-01'\n      AND pzsj < DATE '2026-09-01'\n) den;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 56,
+      "source_cells": {
+        "name": "A56",
+        "code": "B56",
+        "unit": "C56",
+        "definition": "D56",
+        "sql": "E56",
+        "note": "F56"
+      },
+      "tables": [
+        "xxzy_cgspb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CGSP_07_01",
+      "name": "本年度测绘成果利用审批办理案卷_申请单位属地划分_批准件数",
+      "unit": "件",
+      "definition": "按申请单位所在地市分组汇总 2026 年 1—8 月批准办结（zsbh 非空）案卷数；示例为广州市。地市归属规则与脚本一致：广州(440100)=szds='广州市'，或 szds 为空/'null' 且 szsf='广东省'（脚本把无地市数据的广东记录全部归入广州）；其他地市请将城市名替换为 szds 精确匹配值，不要套用“空值归广州”条件；szds 非标准值（空串、错别字等）脚本归入省外(999999)，本示例未包含；全省(440000)需去掉地市条件后独立汇总，不可由地市值相加（去重口径会失真）。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM xxzy_cgspb t1\nLEFT JOIN xxzy_qschzzdwb t2 ON t1.sqdw = t2.sqdw\nWHERE t1.pzsj >= DATE '2026-01-01'\n  AND t1.pzsj < DATE '2026-09-01'\n  AND t1.szqy = '广东省'\n  AND t1.zsbh IS NOT NULL\n  AND (t1.szds = '广州市'\n       OR ((t1.szds IS NULL OR t1.szds = 'null') AND t1.szsf = '广东省'));",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 57,
+      "source_cells": {
+        "name": "A57",
+        "code": "B57",
+        "unit": "C57",
+        "definition": "D57",
+        "sql": "E57",
+        "note": "F57"
+      },
+      "tables": [
+        "xxzy_cgspb",
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CGSP_07_02",
+      "name": "本年度测绘成果利用审批办理案卷_申请单位属地划分_申请单位数",
+      "unit": "家",
+      "definition": "按所在地市分组、对申请单位（sqdw）去重计数；示例为广州市、2026 年 1—8 月累计。地市归属规则与脚本一致：广州(440100)=szds='广州市'，或 szds 为空/'null' 且 szsf='广东省'（脚本把无地市数据的广东记录全部归入广州）；其他地市请将城市名替换为 szds 精确匹配值，不要套用“空值归广州”条件；szds 非标准值（空串、错别字等）脚本归入省外(999999)，本示例未包含；全省(440000)需去掉地市条件后独立汇总，不可由地市值相加（去重口径会失真）。",
+      "sql": "SELECT COUNT(DISTINCT t1.sqdw) AS zbz\nFROM xxzy_cgspb t1\nLEFT JOIN xxzy_qschzzdwb t2 ON t1.sqdw = t2.sqdw\nWHERE t1.pzsj >= DATE '2026-01-01'\n  AND t1.pzsj < DATE '2026-09-01'\n  AND t1.szqy = '广东省'\n  AND t1.zsbh IS NOT NULL\n  AND (t1.szds = '广州市'\n       OR ((t1.szds IS NULL OR t1.szds = 'null') AND t1.szsf = '广东省'));",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 58,
+      "source_cells": {
+        "name": "A58",
+        "code": "B58",
+        "unit": "C58",
+        "definition": "D58",
+        "sql": "E58",
+        "note": "F58"
+      },
+      "tables": [
+        "xxzy_cgspb",
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CGSP_07_03",
+      "name": "本年度测绘成果利用审批办理案卷_申请单位属地划分_首次申请单位数",
+      "unit": "家",
+      "definition": "按所在地市分组、对“是否首次申请（sfsc）=是”的申请单位去重计数；示例为广州市。地市归属规则与脚本一致：广州(440100)=szds='广州市'，或 szds 为空/'null' 且 szsf='广东省'（脚本把无地市数据的广东记录全部归入广州）；其他地市请将城市名替换为 szds 精确匹配值，不要套用“空值归广州”条件；szds 非标准值（空串、错别字等）脚本归入省外(999999)，本示例未包含；全省(440000)需去掉地市条件后独立汇总，不可由地市值相加（去重口径会失真）。",
+      "sql": "SELECT COUNT(DISTINCT CASE WHEN t1.sfsc = '是' THEN t1.sqdw END) AS zbz\nFROM xxzy_cgspb t1\nLEFT JOIN xxzy_qschzzdwb t2 ON t1.sqdw = t2.sqdw\nWHERE t1.pzsj >= DATE '2026-01-01'\n  AND t1.pzsj < DATE '2026-09-01'\n  AND t1.szqy = '广东省'\n  AND t1.zsbh IS NOT NULL\n  AND (t1.szds = '广州市'\n       OR ((t1.szds IS NULL OR t1.szds = 'null') AND t1.szsf = '广东省'));",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 59,
+      "source_cells": {
+        "name": "A59",
+        "code": "B59",
+        "unit": "C59",
+        "definition": "D59",
+        "sql": "E59",
+        "note": "F59"
+      },
+      "tables": [
+        "xxzy_cgspb",
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CGSP_07_04",
+      "name": "本年度测绘成果利用审批办理案卷_申请单位属地划分_申请测绘单位数",
+      "unit": "家",
+      "definition": "按所在地市分组、对在测绘资质单位信息表中存在的申请单位去重计数；示例为广州市。地市归属规则与脚本一致：广州(440100)=szds='广州市'，或 szds 为空/'null' 且 szsf='广东省'（脚本把无地市数据的广东记录全部归入广州）；其他地市请将城市名替换为 szds 精确匹配值，不要套用“空值归广州”条件；szds 非标准值（空串、错别字等）脚本归入省外(999999)，本示例未包含；全省(440000)需去掉地市条件后独立汇总，不可由地市值相加（去重口径会失真）。",
+      "sql": "SELECT COUNT(DISTINCT CASE WHEN t2.sqdw IS NOT NULL THEN t1.sqdw END) AS zbz\nFROM xxzy_cgspb t1\nLEFT JOIN xxzy_qschzzdwb t2 ON t1.sqdw = t2.sqdw\nWHERE t1.pzsj >= DATE '2026-01-01'\n  AND t1.pzsj < DATE '2026-09-01'\n  AND t1.szqy = '广东省'\n  AND t1.zsbh IS NOT NULL\n  AND (t1.szds = '广州市'\n       OR ((t1.szds IS NULL OR t1.szds = 'null') AND t1.szsf = '广东省'));",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 60,
+      "source_cells": {
+        "name": "A60",
+        "code": "B60",
+        "unit": "C60",
+        "definition": "D60",
+        "sql": "E60",
+        "note": "F60"
+      },
+      "tables": [
+        "xxzy_cgspb",
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CGSP_07_05",
+      "name": "本年度测绘成果利用审批办理案卷_申请单位属地划分_首次申请测绘资质单位数",
+      "unit": "家",
+      "definition": "按所在地市分组、首次申请且具备测绘资质的申请单位去重计数；示例为广州市。地市归属规则与脚本一致：广州(440100)=szds='广州市'，或 szds 为空/'null' 且 szsf='广东省'（脚本把无地市数据的广东记录全部归入广州）；其他地市请将城市名替换为 szds 精确匹配值，不要套用“空值归广州”条件；szds 非标准值（空串、错别字等）脚本归入省外(999999)，本示例未包含；全省(440000)需去掉地市条件后独立汇总，不可由地市值相加（去重口径会失真）。",
+      "sql": "SELECT COUNT(DISTINCT CASE WHEN t1.sfsc = '是' AND t2.sqdw IS NOT NULL THEN t1.sqdw END) AS zbz\nFROM xxzy_cgspb t1\nLEFT JOIN xxzy_qschzzdwb t2 ON t1.sqdw = t2.sqdw\nWHERE t1.pzsj >= DATE '2026-01-01'\n  AND t1.pzsj < DATE '2026-09-01'\n  AND t1.szqy = '广东省'\n  AND t1.zsbh IS NOT NULL\n  AND (t1.szds = '广州市'\n       OR ((t1.szds IS NULL OR t1.szds = 'null') AND t1.szsf = '广东省'));",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 61,
+      "source_cells": {
+        "name": "A61",
+        "code": "B61",
+        "unit": "C61",
+        "definition": "D61",
+        "sql": "E61",
+        "note": "F61"
+      },
+      "tables": [
+        "xxzy_cgspb",
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CGSP_07_06",
+      "name": "本年度测绘成果利用审批办理案卷_申请单位属地划分_地理信息系统工程测绘资质单位数",
+      "unit": "家",
+      "definition": "按所在地市分组、专业类别（zylb）含“地理信息系统工程”的申请单位去重计数；示例为广州市。地市归属规则与脚本一致：广州(440100)=szds='广州市'，或 szds 为空/'null' 且 szsf='广东省'（脚本把无地市数据的广东记录全部归入广州）；其他地市请将城市名替换为 szds 精确匹配值，不要套用“空值归广州”条件；szds 非标准值（空串、错别字等）脚本归入省外(999999)，本示例未包含；全省(440000)需去掉地市条件后独立汇总，不可由地市值相加（去重口径会失真）。",
+      "sql": "SELECT COUNT(DISTINCT CASE WHEN t2.zylb LIKE '%地理信息系统工程%' THEN t1.sqdw END) AS zbz\nFROM xxzy_cgspb t1\nLEFT JOIN xxzy_qschzzdwb t2 ON t1.sqdw = t2.sqdw\nWHERE t1.pzsj >= DATE '2026-01-01'\n  AND t1.pzsj < DATE '2026-09-01'\n  AND t1.szqy = '广东省'\n  AND t1.zsbh IS NOT NULL\n  AND (t1.szds = '广州市'\n       OR ((t1.szds IS NULL OR t1.szds = 'null') AND t1.szsf = '广东省'));",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 62,
+      "source_cells": {
+        "name": "A62",
+        "code": "B62",
+        "unit": "C62",
+        "definition": "D62",
+        "sql": "E62",
+        "note": "F62"
+      },
+      "tables": [
+        "xxzy_cgspb",
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CGSP_07_07",
+      "name": "本年度测绘成果利用审批办理案卷_申请单位属地划分_导航电子地图制作测绘资质单位数",
+      "unit": "家",
+      "definition": "按所在地市分组、专业类别含“导航电子地图制作”的申请单位去重计数；示例为广州市。地市归属规则与脚本一致：广州(440100)=szds='广州市'，或 szds 为空/'null' 且 szsf='广东省'（脚本把无地市数据的广东记录全部归入广州）；其他地市请将城市名替换为 szds 精确匹配值，不要套用“空值归广州”条件；szds 非标准值（空串、错别字等）脚本归入省外(999999)，本示例未包含；全省(440000)需去掉地市条件后独立汇总，不可由地市值相加（去重口径会失真）。",
+      "sql": "SELECT COUNT(DISTINCT CASE WHEN t2.zylb LIKE '%导航电子地图制作%' THEN t1.sqdw END) AS zbz\nFROM xxzy_cgspb t1\nLEFT JOIN xxzy_qschzzdwb t2 ON t1.sqdw = t2.sqdw\nWHERE t1.pzsj >= DATE '2026-01-01'\n  AND t1.pzsj < DATE '2026-09-01'\n  AND t1.szqy = '广东省'\n  AND t1.zsbh IS NOT NULL\n  AND (t1.szds = '广州市'\n       OR ((t1.szds IS NULL OR t1.szds = 'null') AND t1.szsf = '广东省'));",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 63,
+      "source_cells": {
+        "name": "A63",
+        "code": "B63",
+        "unit": "C63",
+        "definition": "D63",
+        "sql": "E63",
+        "note": "F63"
+      },
+      "tables": [
+        "xxzy_cgspb",
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CGSP_07_08",
+      "name": "本年度测绘成果利用审批办理案卷_申请单位属地划分_互联网地图服务测绘资质单位数",
+      "unit": "家",
+      "definition": "按所在地市分组、专业类别含“互联网地图服务”的申请单位去重计数；示例为广州市。地市归属规则与脚本一致：广州(440100)=szds='广州市'，或 szds 为空/'null' 且 szsf='广东省'（脚本把无地市数据的广东记录全部归入广州）；其他地市请将城市名替换为 szds 精确匹配值，不要套用“空值归广州”条件；szds 非标准值（空串、错别字等）脚本归入省外(999999)，本示例未包含；全省(440000)需去掉地市条件后独立汇总，不可由地市值相加（去重口径会失真）。",
+      "sql": "SELECT COUNT(DISTINCT CASE WHEN t2.zylb LIKE '%互联网地图服务%' THEN t1.sqdw END) AS zbz\nFROM xxzy_cgspb t1\nLEFT JOIN xxzy_qschzzdwb t2 ON t1.sqdw = t2.sqdw\nWHERE t1.pzsj >= DATE '2026-01-01'\n  AND t1.pzsj < DATE '2026-09-01'\n  AND t1.szqy = '广东省'\n  AND t1.zsbh IS NOT NULL\n  AND (t1.szds = '广州市'\n       OR ((t1.szds IS NULL OR t1.szds = 'null') AND t1.szsf = '广东省'));",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 64,
+      "source_cells": {
+        "name": "A64",
+        "code": "B64",
+        "unit": "C64",
+        "definition": "D64",
+        "sql": "E64",
+        "note": "F64"
+      },
+      "tables": [
+        "xxzy_cgspb",
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CGSP_07_09",
+      "name": "本年度测绘成果利用审批办理案卷_申请单位属地划分_航空摄影测绘资质单位数",
+      "unit": "家",
+      "definition": "按所在地市分组、专业类别含“航空摄影”的申请单位去重计数（资质表中标准专业类别名为“测绘航空摄影”，故用 %航空摄影% 而非精确等于，可同时命中新旧名称；本指标不分甲/乙级）；示例为广州市。地市归属规则与脚本一致：广州(440100)=szds='广州市'，或 szds 为空/'null' 且 szsf='广东省'（脚本把无地市数据的广东记录全部归入广州）；其他地市请将城市名替换为 szds 精确匹配值，不要套用“空值归广州”条件；szds 非标准值（空串、错别字等）脚本归入省外(999999)，本示例未包含；全省(440000)需去掉地市条件后独立汇总，不可由地市值相加（去重口径会失真）。",
+      "sql": "SELECT COUNT(DISTINCT CASE WHEN t2.zylb LIKE '%航空摄影%' THEN t1.sqdw END) AS zbz\nFROM xxzy_cgspb t1\nLEFT JOIN xxzy_qschzzdwb t2 ON t1.sqdw = t2.sqdw\nWHERE t1.pzsj >= DATE '2026-01-01'\n  AND t1.pzsj < DATE '2026-09-01'\n  AND t1.szqy = '广东省'\n  AND t1.zsbh IS NOT NULL\n  AND (t1.szds = '广州市'\n       OR ((t1.szds IS NULL OR t1.szds = 'null') AND t1.szsf = '广东省'));",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 65,
+      "source_cells": {
+        "name": "A65",
+        "code": "B65",
+        "unit": "C65",
+        "definition": "D65",
+        "sql": "E65",
+        "note": "F65"
+      },
+      "tables": [
+        "xxzy_cgspb",
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_01_01",
+      "name": "月末测绘资质单位数量",
+      "unit": "家",
+      "definition": "本月末有效资质单位总数（资质等级为甲级/乙级/甲级乙级的单位）；资质表为当前有效快照，示例为广州市。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM xxzy_qschzzdwb\nWHERE sqdwzzdj IN ('甲级', '乙级', '甲级乙级')\n  AND szds = '广州市';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 66,
+      "source_cells": {
+        "name": "A66",
+        "code": "B66",
+        "unit": "C66",
+        "definition": "D66",
+        "sql": "E66",
+        "note": "F66"
+      },
+      "tables": [
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_01_02",
+      "name": "月末测绘资质单位数量_环比",
+      "unit": "%",
+      "definition": "（本月末有效单位数−上月末有效单位数）/上月末有效单位数×100%；资质单位为快照表、无历史版本，脚本按 0 落库，如需真实环比按上月指标值对比；示例为广州市 8 月对 7 月。",
+      "sql": "SELECT COALESCE(ROUND((cur.zbz::numeric - prev.zbz::numeric) * 100.0\n                      / NULLIF(prev.zbz::numeric, 0), 2), 0) AS zbz\nFROM ch_zbzb cur\nJOIN ch_zbzb prev\n  ON prev.zbx_id = 'CHZZ_01_01'\n AND prev.tjqy_id = cur.tjqy_id\n AND prev.tjsj = 202607\nWHERE cur.zbx_id = 'CHZZ_01_01'\n  AND cur.tjqy_id = 440100\n  AND cur.tjsj = 202608;",
+      "source_note": "该指标无数据支撑",
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 67,
+      "source_cells": {
+        "name": "A67",
+        "code": "B67",
+        "unit": "C67",
+        "definition": "D67",
+        "sql": "E67",
+        "note": "F67"
+      },
+      "tables": [
+        "ch_zbzb"
+      ],
+      "availability": "requires_comparable_history"
+    },
+    {
+      "code": "CHZZ_01_03",
+      "name": "月末甲级测绘资质单位数量",
+      "unit": "家",
+      "definition": "本月末持有甲级资质（含甲乙双证）的单位数；示例为广州市。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM xxzy_qschzzdwb\nWHERE sqdwzzdj IN ('甲级', '甲级乙级')\n  AND szds = '广州市';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 68,
+      "source_cells": {
+        "name": "A68",
+        "code": "B68",
+        "unit": "C68",
+        "definition": "D68",
+        "sql": "E68",
+        "note": "F68"
+      },
+      "tables": [
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_01_04",
+      "name": "月末甲级测绘资质单位数量_环比",
+      "unit": "%",
+      "definition": "（本月末甲级单位数−上月末甲级单位数）/上月末甲级单位数×100%；资质单位为快照表、无历史版本，脚本按 0 落库，如需真实环比按上月指标值对比；示例为广州市 8 月对 7 月。",
+      "sql": "SELECT COALESCE(ROUND((cur.zbz::numeric - prev.zbz::numeric) * 100.0\n                      / NULLIF(prev.zbz::numeric, 0), 2), 0) AS zbz\nFROM ch_zbzb cur\nJOIN ch_zbzb prev\n  ON prev.zbx_id = 'CHZZ_01_03'\n AND prev.tjqy_id = cur.tjqy_id\n AND prev.tjsj = 202607\nWHERE cur.zbx_id = 'CHZZ_01_03'\n  AND cur.tjqy_id = 440100\n  AND cur.tjsj = 202608;",
+      "source_note": "该指标无数据支撑",
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 69,
+      "source_cells": {
+        "name": "A69",
+        "code": "B69",
+        "unit": "C69",
+        "definition": "D69",
+        "sql": "E69",
+        "note": "F69"
+      },
+      "tables": [
+        "ch_zbzb"
+      ],
+      "availability": "requires_comparable_history"
+    },
+    {
+      "code": "CHZZ_01_05",
+      "name": "月末乙级测绘资质单位数量",
+      "unit": "家",
+      "definition": "本月末仅持乙级资质的单位数（不含甲乙双证）；示例为广州市。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM xxzy_qschzzdwb\nWHERE sqdwzzdj = '乙级'\n  AND szds = '广州市';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 70,
+      "source_cells": {
+        "name": "A70",
+        "code": "B70",
+        "unit": "C70",
+        "definition": "D70",
+        "sql": "E70",
+        "note": "F70"
+      },
+      "tables": [
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_01_06",
+      "name": "月末乙级测绘资质单位数量_环比",
+      "unit": "%",
+      "definition": "（本月末乙级单位数−上月末乙级单位数）/上月末乙级单位数×100%；资质单位为快照表、无历史版本，脚本按 0 落库，如需真实环比按上月指标值对比；示例为广州市 8 月对 7 月。",
+      "sql": "SELECT COALESCE(ROUND((cur.zbz::numeric - prev.zbz::numeric) * 100.0\n                      / NULLIF(prev.zbz::numeric, 0), 2), 0) AS zbz\nFROM ch_zbzb cur\nJOIN ch_zbzb prev\n  ON prev.zbx_id = 'CHZZ_01_05'\n AND prev.tjqy_id = cur.tjqy_id\n AND prev.tjsj = 202607\nWHERE cur.zbx_id = 'CHZZ_01_05'\n  AND cur.tjqy_id = 440100\n  AND cur.tjsj = 202608;",
+      "source_note": "该指标无数据支撑",
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 71,
+      "source_cells": {
+        "name": "A71",
+        "code": "B71",
+        "unit": "C71",
+        "definition": "D71",
+        "sql": "E71",
+        "note": "F71"
+      },
+      "tables": [
+        "ch_zbzb"
+      ],
+      "availability": "requires_comparable_history"
+    },
+    {
+      "code": "CHZZ_01_07",
+      "name": "月末甲乙双证测绘资质单位数量",
+      "unit": "家",
+      "definition": "本月末同时持有甲级和乙级资质的单位数；示例为广州市。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM xxzy_qschzzdwb\nWHERE sqdwzzdj = '甲级乙级'\n  AND szds = '广州市';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 72,
+      "source_cells": {
+        "name": "A72",
+        "code": "B72",
+        "unit": "C72",
+        "definition": "D72",
+        "sql": "E72",
+        "note": "F72"
+      },
+      "tables": [
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_01_08",
+      "name": "月末甲乙双证测绘资质单位数量_环比",
+      "unit": "%",
+      "definition": "（本月末双证单位数−上月末双证单位数）/上月末双证单位数×100%；资质单位为快照表、无历史版本，脚本按 0 落库，如需真实环比按上月指标值对比；示例为广州市 8 月对 7 月。",
+      "sql": "SELECT COALESCE(ROUND((cur.zbz::numeric - prev.zbz::numeric) * 100.0\n                      / NULLIF(prev.zbz::numeric, 0), 2), 0) AS zbz\nFROM ch_zbzb cur\nJOIN ch_zbzb prev\n  ON prev.zbx_id = 'CHZZ_01_07'\n AND prev.tjqy_id = cur.tjqy_id\n AND prev.tjsj = 202607\nWHERE cur.zbx_id = 'CHZZ_01_07'\n  AND cur.tjqy_id = 440100\n  AND cur.tjsj = 202608;",
+      "source_note": "该指标无数据支撑",
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 73,
+      "source_cells": {
+        "name": "A73",
+        "code": "B73",
+        "unit": "C73",
+        "definition": "D73",
+        "sql": "E73",
+        "note": "F73"
+      },
+      "tables": [
+        "ch_zbzb"
+      ],
+      "availability": "requires_comparable_history"
+    },
+    {
+      "code": "CHZZ_02_01",
+      "name": "大地测量专业_甲级_资质单位数量",
+      "unit": "家",
+      "definition": "专业类别（zylb）按“甲级：/乙级：”分段后，甲级段含“大地测量”且资质等级为甲级（含甲乙双证）的单位数；示例为广州市。",
+      "sql": "WITH u AS (\n    SELECT CASE\n               WHEN POSITION('甲级：' IN zylb) = 0 THEN ''\n               WHEN POSITION('乙级：' IN zylb) > POSITION('甲级：' IN zylb)\n                   THEN SUBSTRING(zylb, POSITION('甲级：' IN zylb) + 3,\n                                  POSITION('乙级：' IN zylb) - POSITION('甲级：' IN zylb) - 3)\n               ELSE SUBSTRING(zylb, POSITION('甲级：' IN zylb) + 3)\n           END AS jj_part\n    FROM xxzy_qschzzdwb\n    WHERE sqdwzzdj IN ('甲级', '甲级乙级')\n      AND szds = '广州市'\n)\nSELECT COUNT(1) AS zbz\nFROM u\nWHERE jj_part LIKE '%大地测量%';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 74,
+      "source_cells": {
+        "name": "A74",
+        "code": "B74",
+        "unit": "C74",
+        "definition": "D74",
+        "sql": "E74",
+        "note": "F74"
+      },
+      "tables": [
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_02_02",
+      "name": "测绘航空摄影专业_甲级_资质单位数量",
+      "unit": "家",
+      "definition": "专业类别（zylb）按“甲级：/乙级：”分段后，甲级段含“测绘航空摄影”且资质等级为甲级（含甲乙双证）的单位数；示例为广州市。",
+      "sql": "WITH u AS (\n    SELECT CASE\n               WHEN POSITION('甲级：' IN zylb) = 0 THEN ''\n               WHEN POSITION('乙级：' IN zylb) > POSITION('甲级：' IN zylb)\n                   THEN SUBSTRING(zylb, POSITION('甲级：' IN zylb) + 3,\n                                  POSITION('乙级：' IN zylb) - POSITION('甲级：' IN zylb) - 3)\n               ELSE SUBSTRING(zylb, POSITION('甲级：' IN zylb) + 3)\n           END AS jj_part\n    FROM xxzy_qschzzdwb\n    WHERE sqdwzzdj IN ('甲级', '甲级乙级')\n      AND szds = '广州市'\n)\nSELECT COUNT(1) AS zbz\nFROM u\nWHERE jj_part LIKE '%测绘航空摄影%';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 75,
+      "source_cells": {
+        "name": "A75",
+        "code": "B75",
+        "unit": "C75",
+        "definition": "D75",
+        "sql": "E75",
+        "note": "F75"
+      },
+      "tables": [
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_02_03",
+      "name": "摄影测量与遥感专业_甲级_资质单位数量",
+      "unit": "家",
+      "definition": "专业类别（zylb）按“甲级：/乙级：”分段后，甲级段含“摄影测量与遥感”且资质等级为甲级（含甲乙双证）的单位数；示例为广州市。",
+      "sql": "WITH u AS (\n    SELECT CASE\n               WHEN POSITION('甲级：' IN zylb) = 0 THEN ''\n               WHEN POSITION('乙级：' IN zylb) > POSITION('甲级：' IN zylb)\n                   THEN SUBSTRING(zylb, POSITION('甲级：' IN zylb) + 3,\n                                  POSITION('乙级：' IN zylb) - POSITION('甲级：' IN zylb) - 3)\n               ELSE SUBSTRING(zylb, POSITION('甲级：' IN zylb) + 3)\n           END AS jj_part\n    FROM xxzy_qschzzdwb\n    WHERE sqdwzzdj IN ('甲级', '甲级乙级')\n      AND szds = '广州市'\n)\nSELECT COUNT(1) AS zbz\nFROM u\nWHERE jj_part LIKE '%摄影测量与遥感%';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 76,
+      "source_cells": {
+        "name": "A76",
+        "code": "B76",
+        "unit": "C76",
+        "definition": "D76",
+        "sql": "E76",
+        "note": "F76"
+      },
+      "tables": [
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_02_04",
+      "name": "工程测量专业_甲级_资质单位数量",
+      "unit": "家",
+      "definition": "专业类别（zylb）按“甲级：/乙级：”分段后，甲级段含“工程测量”且资质等级为甲级（含甲乙双证）的单位数；示例为广州市。",
+      "sql": "WITH u AS (\n    SELECT CASE\n               WHEN POSITION('甲级：' IN zylb) = 0 THEN ''\n               WHEN POSITION('乙级：' IN zylb) > POSITION('甲级：' IN zylb)\n                   THEN SUBSTRING(zylb, POSITION('甲级：' IN zylb) + 3,\n                                  POSITION('乙级：' IN zylb) - POSITION('甲级：' IN zylb) - 3)\n               ELSE SUBSTRING(zylb, POSITION('甲级：' IN zylb) + 3)\n           END AS jj_part\n    FROM xxzy_qschzzdwb\n    WHERE sqdwzzdj IN ('甲级', '甲级乙级')\n      AND szds = '广州市'\n)\nSELECT COUNT(1) AS zbz\nFROM u\nWHERE jj_part LIKE '%工程测量%';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 77,
+      "source_cells": {
+        "name": "A77",
+        "code": "B77",
+        "unit": "C77",
+        "definition": "D77",
+        "sql": "E77",
+        "note": "F77"
+      },
+      "tables": [
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_02_05",
+      "name": "海洋测绘专业_甲级_资质单位数量",
+      "unit": "家",
+      "definition": "专业类别（zylb）按“甲级：/乙级：”分段后，甲级段含“海洋测绘”且资质等级为甲级（含甲乙双证）的单位数；示例为广州市。",
+      "sql": "WITH u AS (\n    SELECT CASE\n               WHEN POSITION('甲级：' IN zylb) = 0 THEN ''\n               WHEN POSITION('乙级：' IN zylb) > POSITION('甲级：' IN zylb)\n                   THEN SUBSTRING(zylb, POSITION('甲级：' IN zylb) + 3,\n                                  POSITION('乙级：' IN zylb) - POSITION('甲级：' IN zylb) - 3)\n               ELSE SUBSTRING(zylb, POSITION('甲级：' IN zylb) + 3)\n           END AS jj_part\n    FROM xxzy_qschzzdwb\n    WHERE sqdwzzdj IN ('甲级', '甲级乙级')\n      AND szds = '广州市'\n)\nSELECT COUNT(1) AS zbz\nFROM u\nWHERE jj_part LIKE '%海洋测绘%';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 78,
+      "source_cells": {
+        "name": "A78",
+        "code": "B78",
+        "unit": "C78",
+        "definition": "D78",
+        "sql": "E78",
+        "note": "F78"
+      },
+      "tables": [
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_02_06",
+      "name": "界线与不动产测绘专业_甲级_资质单位数量",
+      "unit": "家",
+      "definition": "专业类别（zylb）按“甲级：/乙级：”分段后，甲级段含“界线与不动产测绘”且资质等级为甲级（含甲乙双证）的单位数；示例为广州市。",
+      "sql": "WITH u AS (\n    SELECT CASE\n               WHEN POSITION('甲级：' IN zylb) = 0 THEN ''\n               WHEN POSITION('乙级：' IN zylb) > POSITION('甲级：' IN zylb)\n                   THEN SUBSTRING(zylb, POSITION('甲级：' IN zylb) + 3,\n                                  POSITION('乙级：' IN zylb) - POSITION('甲级：' IN zylb) - 3)\n               ELSE SUBSTRING(zylb, POSITION('甲级：' IN zylb) + 3)\n           END AS jj_part\n    FROM xxzy_qschzzdwb\n    WHERE sqdwzzdj IN ('甲级', '甲级乙级')\n      AND szds = '广州市'\n)\nSELECT COUNT(1) AS zbz\nFROM u\nWHERE jj_part LIKE '%界线与不动产测绘%';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 79,
+      "source_cells": {
+        "name": "A79",
+        "code": "B79",
+        "unit": "C79",
+        "definition": "D79",
+        "sql": "E79",
+        "note": "F79"
+      },
+      "tables": [
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_02_07",
+      "name": "地理信息系统工程专业_甲级_资质单位数量",
+      "unit": "家",
+      "definition": "专业类别（zylb）按“甲级：/乙级：”分段后，甲级段含“地理信息系统工程”且资质等级为甲级（含甲乙双证）的单位数；示例为广州市。",
+      "sql": "WITH u AS (\n    SELECT CASE\n               WHEN POSITION('甲级：' IN zylb) = 0 THEN ''\n               WHEN POSITION('乙级：' IN zylb) > POSITION('甲级：' IN zylb)\n                   THEN SUBSTRING(zylb, POSITION('甲级：' IN zylb) + 3,\n                                  POSITION('乙级：' IN zylb) - POSITION('甲级：' IN zylb) - 3)\n               ELSE SUBSTRING(zylb, POSITION('甲级：' IN zylb) + 3)\n           END AS jj_part\n    FROM xxzy_qschzzdwb\n    WHERE sqdwzzdj IN ('甲级', '甲级乙级')\n      AND szds = '广州市'\n)\nSELECT COUNT(1) AS zbz\nFROM u\nWHERE jj_part LIKE '%地理信息系统工程%';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 80,
+      "source_cells": {
+        "name": "A80",
+        "code": "B80",
+        "unit": "C80",
+        "definition": "D80",
+        "sql": "E80",
+        "note": "F80"
+      },
+      "tables": [
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_02_08",
+      "name": "地图编制专业_甲级_资质单位数量",
+      "unit": "家",
+      "definition": "专业类别（zylb）按“甲级：/乙级：”分段后，甲级段含“地图编制”且资质等级为甲级（含甲乙双证）的单位数；示例为广州市。",
+      "sql": "WITH u AS (\n    SELECT CASE\n               WHEN POSITION('甲级：' IN zylb) = 0 THEN ''\n               WHEN POSITION('乙级：' IN zylb) > POSITION('甲级：' IN zylb)\n                   THEN SUBSTRING(zylb, POSITION('甲级：' IN zylb) + 3,\n                                  POSITION('乙级：' IN zylb) - POSITION('甲级：' IN zylb) - 3)\n               ELSE SUBSTRING(zylb, POSITION('甲级：' IN zylb) + 3)\n           END AS jj_part\n    FROM xxzy_qschzzdwb\n    WHERE sqdwzzdj IN ('甲级', '甲级乙级')\n      AND szds = '广州市'\n)\nSELECT COUNT(1) AS zbz\nFROM u\nWHERE jj_part LIKE '%地图编制%';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 81,
+      "source_cells": {
+        "name": "A81",
+        "code": "B81",
+        "unit": "C81",
+        "definition": "D81",
+        "sql": "E81",
+        "note": "F81"
+      },
+      "tables": [
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_02_09",
+      "name": "导航电子地图制作专业_甲级_资质单位数量",
+      "unit": "家",
+      "definition": "专业类别（zylb）按“甲级：/乙级：”分段后，甲级段含“导航电子地图制作”且资质等级为甲级（含甲乙双证）的单位数；示例为广州市。",
+      "sql": "WITH u AS (\n    SELECT CASE\n               WHEN POSITION('甲级：' IN zylb) = 0 THEN ''\n               WHEN POSITION('乙级：' IN zylb) > POSITION('甲级：' IN zylb)\n                   THEN SUBSTRING(zylb, POSITION('甲级：' IN zylb) + 3,\n                                  POSITION('乙级：' IN zylb) - POSITION('甲级：' IN zylb) - 3)\n               ELSE SUBSTRING(zylb, POSITION('甲级：' IN zylb) + 3)\n           END AS jj_part\n    FROM xxzy_qschzzdwb\n    WHERE sqdwzzdj IN ('甲级', '甲级乙级')\n      AND szds = '广州市'\n)\nSELECT COUNT(1) AS zbz\nFROM u\nWHERE jj_part LIKE '%导航电子地图制作%';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 82,
+      "source_cells": {
+        "name": "A82",
+        "code": "B82",
+        "unit": "C82",
+        "definition": "D82",
+        "sql": "E82",
+        "note": "F82"
+      },
+      "tables": [
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_02_10",
+      "name": "互联网地图服务专业_甲级_资质单位数量",
+      "unit": "家",
+      "definition": "专业类别（zylb）按“甲级：/乙级：”分段后，甲级段含“互联网地图服务”且资质等级为甲级（含甲乙双证）的单位数；示例为广州市。",
+      "sql": "WITH u AS (\n    SELECT CASE\n               WHEN POSITION('甲级：' IN zylb) = 0 THEN ''\n               WHEN POSITION('乙级：' IN zylb) > POSITION('甲级：' IN zylb)\n                   THEN SUBSTRING(zylb, POSITION('甲级：' IN zylb) + 3,\n                                  POSITION('乙级：' IN zylb) - POSITION('甲级：' IN zylb) - 3)\n               ELSE SUBSTRING(zylb, POSITION('甲级：' IN zylb) + 3)\n           END AS jj_part\n    FROM xxzy_qschzzdwb\n    WHERE sqdwzzdj IN ('甲级', '甲级乙级')\n      AND szds = '广州市'\n)\nSELECT COUNT(1) AS zbz\nFROM u\nWHERE jj_part LIKE '%互联网地图服务%';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 83,
+      "source_cells": {
+        "name": "A83",
+        "code": "B83",
+        "unit": "C83",
+        "definition": "D83",
+        "sql": "E83",
+        "note": "F83"
+      },
+      "tables": [
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_02_11",
+      "name": "大地测量专业_乙级_资质单位数量",
+      "unit": "家",
+      "definition": "专业类别（zylb）按“甲级：/乙级：”分段后，乙级段含“大地测量”且资质等级为乙级的单位数；示例为广州市。",
+      "sql": "WITH u AS (\n    SELECT SUBSTRING(zylb, POSITION('乙级：' IN zylb) + 3) AS yj_part\n    FROM xxzy_qschzzdwb\n    WHERE sqdwzzdj = '乙级'\n      AND szds = '广州市'\n      AND POSITION('乙级：' IN zylb) > 0\n)\nSELECT COUNT(1) AS zbz\nFROM u\nWHERE yj_part LIKE '%大地测量%';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 84,
+      "source_cells": {
+        "name": "A84",
+        "code": "B84",
+        "unit": "C84",
+        "definition": "D84",
+        "sql": "E84",
+        "note": "F84"
+      },
+      "tables": [
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_02_12",
+      "name": "测绘航空摄影专业_乙级_资质单位数量",
+      "unit": "家",
+      "definition": "专业类别（zylb）按“甲级：/乙级：”分段后，乙级段含“测绘航空摄影”且资质等级为乙级的单位数；示例为广州市。",
+      "sql": "WITH u AS (\n    SELECT SUBSTRING(zylb, POSITION('乙级：' IN zylb) + 3) AS yj_part\n    FROM xxzy_qschzzdwb\n    WHERE sqdwzzdj = '乙级'\n      AND szds = '广州市'\n      AND POSITION('乙级：' IN zylb) > 0\n)\nSELECT COUNT(1) AS zbz\nFROM u\nWHERE yj_part LIKE '%测绘航空摄影%';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 85,
+      "source_cells": {
+        "name": "A85",
+        "code": "B85",
+        "unit": "C85",
+        "definition": "D85",
+        "sql": "E85",
+        "note": "F85"
+      },
+      "tables": [
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_02_13",
+      "name": "摄影测量与遥感专业_乙级_资质单位数量",
+      "unit": "家",
+      "definition": "专业类别（zylb）按“甲级：/乙级：”分段后，乙级段含“摄影测量与遥感”且资质等级为乙级的单位数；示例为广州市。",
+      "sql": "WITH u AS (\n    SELECT SUBSTRING(zylb, POSITION('乙级：' IN zylb) + 3) AS yj_part\n    FROM xxzy_qschzzdwb\n    WHERE sqdwzzdj = '乙级'\n      AND szds = '广州市'\n      AND POSITION('乙级：' IN zylb) > 0\n)\nSELECT COUNT(1) AS zbz\nFROM u\nWHERE yj_part LIKE '%摄影测量与遥感%';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 86,
+      "source_cells": {
+        "name": "A86",
+        "code": "B86",
+        "unit": "C86",
+        "definition": "D86",
+        "sql": "E86",
+        "note": "F86"
+      },
+      "tables": [
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_02_14",
+      "name": "工程测量专业_乙级_资质单位数量",
+      "unit": "家",
+      "definition": "专业类别（zylb）按“甲级：/乙级：”分段后，乙级段含“工程测量”且资质等级为乙级的单位数；示例为广州市。",
+      "sql": "WITH u AS (\n    SELECT SUBSTRING(zylb, POSITION('乙级：' IN zylb) + 3) AS yj_part\n    FROM xxzy_qschzzdwb\n    WHERE sqdwzzdj = '乙级'\n      AND szds = '广州市'\n      AND POSITION('乙级：' IN zylb) > 0\n)\nSELECT COUNT(1) AS zbz\nFROM u\nWHERE yj_part LIKE '%工程测量%';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 87,
+      "source_cells": {
+        "name": "A87",
+        "code": "B87",
+        "unit": "C87",
+        "definition": "D87",
+        "sql": "E87",
+        "note": "F87"
+      },
+      "tables": [
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_02_15",
+      "name": "海洋测绘专业_乙级_资质单位数量",
+      "unit": "家",
+      "definition": "专业类别（zylb）按“甲级：/乙级：”分段后，乙级段含“海洋测绘”且资质等级为乙级的单位数；示例为广州市。",
+      "sql": "WITH u AS (\n    SELECT SUBSTRING(zylb, POSITION('乙级：' IN zylb) + 3) AS yj_part\n    FROM xxzy_qschzzdwb\n    WHERE sqdwzzdj = '乙级'\n      AND szds = '广州市'\n      AND POSITION('乙级：' IN zylb) > 0\n)\nSELECT COUNT(1) AS zbz\nFROM u\nWHERE yj_part LIKE '%海洋测绘%';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 88,
+      "source_cells": {
+        "name": "A88",
+        "code": "B88",
+        "unit": "C88",
+        "definition": "D88",
+        "sql": "E88",
+        "note": "F88"
+      },
+      "tables": [
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_02_16",
+      "name": "界线与不动产测绘专业_乙级_资质单位数量",
+      "unit": "家",
+      "definition": "专业类别（zylb）按“甲级：/乙级：”分段后，乙级段含“界线与不动产测绘”且资质等级为乙级的单位数；示例为广州市。",
+      "sql": "WITH u AS (\n    SELECT SUBSTRING(zylb, POSITION('乙级：' IN zylb) + 3) AS yj_part\n    FROM xxzy_qschzzdwb\n    WHERE sqdwzzdj = '乙级'\n      AND szds = '广州市'\n      AND POSITION('乙级：' IN zylb) > 0\n)\nSELECT COUNT(1) AS zbz\nFROM u\nWHERE yj_part LIKE '%界线与不动产测绘%';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 89,
+      "source_cells": {
+        "name": "A89",
+        "code": "B89",
+        "unit": "C89",
+        "definition": "D89",
+        "sql": "E89",
+        "note": "F89"
+      },
+      "tables": [
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_02_17",
+      "name": "地理信息系统工程专业_乙级_资质单位数量",
+      "unit": "家",
+      "definition": "专业类别（zylb）按“甲级：/乙级：”分段后，乙级段含“地理信息系统工程”且资质等级为乙级的单位数；示例为广州市。",
+      "sql": "WITH u AS (\n    SELECT SUBSTRING(zylb, POSITION('乙级：' IN zylb) + 3) AS yj_part\n    FROM xxzy_qschzzdwb\n    WHERE sqdwzzdj = '乙级'\n      AND szds = '广州市'\n      AND POSITION('乙级：' IN zylb) > 0\n)\nSELECT COUNT(1) AS zbz\nFROM u\nWHERE yj_part LIKE '%地理信息系统工程%';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 90,
+      "source_cells": {
+        "name": "A90",
+        "code": "B90",
+        "unit": "C90",
+        "definition": "D90",
+        "sql": "E90",
+        "note": "F90"
+      },
+      "tables": [
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_02_18",
+      "name": "地图编制专业_乙级_资质单位数量",
+      "unit": "家",
+      "definition": "专业类别（zylb）按“甲级：/乙级：”分段后，乙级段含“地图编制”且资质等级为乙级的单位数；示例为广州市。",
+      "sql": "WITH u AS (\n    SELECT SUBSTRING(zylb, POSITION('乙级：' IN zylb) + 3) AS yj_part\n    FROM xxzy_qschzzdwb\n    WHERE sqdwzzdj = '乙级'\n      AND szds = '广州市'\n      AND POSITION('乙级：' IN zylb) > 0\n)\nSELECT COUNT(1) AS zbz\nFROM u\nWHERE yj_part LIKE '%地图编制%';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 91,
+      "source_cells": {
+        "name": "A91",
+        "code": "B91",
+        "unit": "C91",
+        "definition": "D91",
+        "sql": "E91",
+        "note": "F91"
+      },
+      "tables": [
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_02_19",
+      "name": "导航电子地图制作专业_乙级_资质单位数量",
+      "unit": "家",
+      "definition": "专业类别（zylb）按“甲级：/乙级：”分段后，乙级段含“导航电子地图制作”且资质等级为乙级的单位数；示例为广州市。",
+      "sql": "WITH u AS (\n    SELECT SUBSTRING(zylb, POSITION('乙级：' IN zylb) + 3) AS yj_part\n    FROM xxzy_qschzzdwb\n    WHERE sqdwzzdj = '乙级'\n      AND szds = '广州市'\n      AND POSITION('乙级：' IN zylb) > 0\n)\nSELECT COUNT(1) AS zbz\nFROM u\nWHERE yj_part LIKE '%导航电子地图制作%';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 92,
+      "source_cells": {
+        "name": "A92",
+        "code": "B92",
+        "unit": "C92",
+        "definition": "D92",
+        "sql": "E92",
+        "note": "F92"
+      },
+      "tables": [
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_02_20",
+      "name": "互联网地图服务专业_乙级_资质单位数量",
+      "unit": "家",
+      "definition": "专业类别（zylb）按“甲级：/乙级：”分段后，乙级段含“互联网地图服务”且资质等级为乙级的单位数；示例为广州市。",
+      "sql": "WITH u AS (\n    SELECT SUBSTRING(zylb, POSITION('乙级：' IN zylb) + 3) AS yj_part\n    FROM xxzy_qschzzdwb\n    WHERE sqdwzzdj = '乙级'\n      AND szds = '广州市'\n      AND POSITION('乙级：' IN zylb) > 0\n)\nSELECT COUNT(1) AS zbz\nFROM u\nWHERE yj_part LIKE '%互联网地图服务%';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 93,
+      "source_cells": {
+        "name": "A93",
+        "code": "B93",
+        "unit": "C93",
+        "definition": "D93",
+        "sql": "E93",
+        "note": "F93"
+      },
+      "tables": [
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_03_01",
+      "name": "本年度资质审批业务办理案卷数量",
+      "unit": "件",
+      "definition": "受理日期（slrq）在 2026-01-01 至 2026-08-31 的测绘资质业务案卷数（全部业务类型）。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM proj_zzdwsq\nWHERE slrq >= DATE '2026-01-01'\n  AND slrq < DATE '2026-09-01';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 94,
+      "source_cells": {
+        "name": "A94",
+        "code": "B94",
+        "unit": "C94",
+        "definition": "D94",
+        "sql": "E94",
+        "note": "F94"
+      },
+      "tables": [
+        "proj_zzdwsq"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_03_02",
+      "name": "本年度资质审批业务办理案卷数量_同比",
+      "unit": "%",
+      "definition": "（本年累计−上年同期累计）/上年同期累计×100%；示例 2026 年 1—8 月对 2025 年 1—8 月。",
+      "sql": "SELECT COALESCE(ROUND((cur.v - base.v) * 100.0 / NULLIF(base.v, 0), 2), 0) AS zbz\nFROM (\n    SELECT COUNT(1) AS v\n    FROM proj_zzdwsq\n    WHERE slrq >= DATE '2026-01-01'\n      AND slrq < DATE '2026-09-01'\n) cur,\n(\n    SELECT COUNT(1) AS v\n    FROM proj_zzdwsq\n    WHERE slrq >= DATE '2025-01-01'\n      AND slrq < DATE '2025-09-01'\n) base;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 95,
+      "source_cells": {
+        "name": "A95",
+        "code": "B95",
+        "unit": "C95",
+        "definition": "D95",
+        "sql": "E95",
+        "note": "F95"
+      },
+      "tables": [
+        "proj_zzdwsq"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_03_03",
+      "name": "本月资质审批业务办理案卷数量",
+      "unit": "件",
+      "definition": "受理日期在 2026 年 8 月的测绘资质业务案卷数。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM proj_zzdwsq\nWHERE slrq >= DATE '2026-08-01'\n  AND slrq < DATE '2026-09-01';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 96,
+      "source_cells": {
+        "name": "A96",
+        "code": "B96",
+        "unit": "C96",
+        "definition": "D96",
+        "sql": "E96",
+        "note": "F96"
+      },
+      "tables": [
+        "proj_zzdwsq"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_03_04",
+      "name": "本月资质审批业务办理案卷数量_环比",
+      "unit": "%",
+      "definition": "（本月值−上月值）/上月值×100%；示例 8 月对 7 月。",
+      "sql": "SELECT COALESCE(ROUND((m8.v - m7.v) * 100.0 / NULLIF(m7.v, 0), 2), 0) AS zbz\nFROM (\n    SELECT COUNT(1) AS v\n    FROM proj_zzdwsq\n    WHERE slrq >= DATE '2026-08-01'\n      AND slrq < DATE '2026-09-01'\n) m8,\n(\n    SELECT COUNT(1) AS v\n    FROM proj_zzdwsq\n    WHERE slrq >= DATE '2026-07-01'\n      AND slrq < DATE '2026-08-01'\n) m7;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 97,
+      "source_cells": {
+        "name": "A97",
+        "code": "B97",
+        "unit": "C97",
+        "definition": "D97",
+        "sql": "E97",
+        "note": "F97"
+      },
+      "tables": [
+        "proj_zzdwsq"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_03_05",
+      "name": "本年度资质审批业务办理案卷数量_资质申请",
+      "unit": "件",
+      "definition": "受理日期在 2026-01-01 至 2026-08-31、项目名称（xmmc）为“资质申请”的案卷数。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM proj_zzdwsq\nWHERE xmmc = '资质申请'\n  AND slrq >= DATE '2026-01-01'\n  AND slrq < DATE '2026-09-01';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 98,
+      "source_cells": {
+        "name": "A98",
+        "code": "B98",
+        "unit": "C98",
+        "definition": "D98",
+        "sql": "E98",
+        "note": "F98"
+      },
+      "tables": [
+        "proj_zzdwsq"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_03_06",
+      "name": "本年度资质审批业务办理案卷数量_补充和修改数据",
+      "unit": "件",
+      "definition": "受理日期在 2026-01-01 至 2026-08-31、项目名称（xmmc）为“补充和修改数据”的案卷数。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM proj_zzdwsq\nWHERE xmmc = '补充和修改数据'\n  AND slrq >= DATE '2026-01-01'\n  AND slrq < DATE '2026-09-01';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 99,
+      "source_cells": {
+        "name": "A99",
+        "code": "B99",
+        "unit": "C99",
+        "definition": "D99",
+        "sql": "E99",
+        "note": "F99"
+      },
+      "tables": [
+        "proj_zzdwsq"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_03_07",
+      "name": "本年度资质审批业务办理案卷数量_基本信息变更",
+      "unit": "件",
+      "definition": "受理日期在 2026-01-01 至 2026-08-31、项目名称（xmmc）为“基本信息变更”的案卷数。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM proj_zzdwsq\nWHERE xmmc = '基本信息变更'\n  AND slrq >= DATE '2026-01-01'\n  AND slrq < DATE '2026-09-01';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 100,
+      "source_cells": {
+        "name": "A100",
+        "code": "B100",
+        "unit": "C100",
+        "definition": "D100",
+        "sql": "E100",
+        "note": "F100"
+      },
+      "tables": [
+        "proj_zzdwsq"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_03_08",
+      "name": "本年度资质审批业务办理案卷数量_专业类别变更",
+      "unit": "件",
+      "definition": "受理日期在 2026-01-01 至 2026-08-31、项目名称（xmmc）为“专业类别变更”的案卷数。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM proj_zzdwsq\nWHERE xmmc = '专业类别变更'\n  AND slrq >= DATE '2026-01-01'\n  AND slrq < DATE '2026-09-01';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 101,
+      "source_cells": {
+        "name": "A101",
+        "code": "B101",
+        "unit": "C101",
+        "definition": "D101",
+        "sql": "E101",
+        "note": "F101"
+      },
+      "tables": [
+        "proj_zzdwsq"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_03_09",
+      "name": "本年度资质审批业务办理案卷数量_延续申请",
+      "unit": "件",
+      "definition": "受理日期在 2026-01-01 至 2026-08-31、项目名称（xmmc）为“复审换证”的案卷数。脚本以 xmmc='延续申请' 实现“延续申请”口径。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM proj_zzdwsq\nWHERE xmmc = '延续申请'\n  AND slrq >= DATE '2026-01-01'\n  AND slrq < DATE '2026-09-01';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 102,
+      "source_cells": {
+        "name": "A102",
+        "code": "B102",
+        "unit": "C102",
+        "definition": "D102",
+        "sql": "E102",
+        "note": "F102"
+      },
+      "tables": [
+        "proj_zzdwsq"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_03_10",
+      "name": "本年度资质审批业务办理案卷数量_申请注销",
+      "unit": "件",
+      "definition": "受理日期在 2026-01-01 至 2026-08-31、项目名称（xmmc）为“申请注销”的案卷数。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM proj_zzdwsq\nWHERE xmmc = '申请注销'\n  AND slrq >= DATE '2026-01-01'\n  AND slrq < DATE '2026-09-01';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 103,
+      "source_cells": {
+        "name": "A103",
+        "code": "B103",
+        "unit": "C103",
+        "definition": "D103",
+        "sql": "E103",
+        "note": "F103"
+      },
+      "tables": [
+        "proj_zzdwsq"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_03_11",
+      "name": "本年度资质审批业务办理案卷数量_资质申请_占比",
+      "unit": "%",
+      "definition": "“资质申请”累计案卷量 / 同期资质审批业务办理案卷总量×100%；示例为 2026 年 1—8 月累计。",
+      "sql": "SELECT ROUND(num.v * 100.0 / NULLIF(den.v, 0), 2) AS zbz\nFROM (\n    SELECT COUNT(1) AS v\n    FROM proj_zzdwsq\n    WHERE xmmc = '资质申请'\n      AND slrq >= DATE '2026-01-01'\n      AND slrq < DATE '2026-09-01'\n) num,\n(\n    SELECT COUNT(1) AS v\n    FROM proj_zzdwsq\n    WHERE slrq >= DATE '2026-01-01'\n      AND slrq < DATE '2026-09-01'\n) den;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 104,
+      "source_cells": {
+        "name": "A104",
+        "code": "B104",
+        "unit": "C104",
+        "definition": "D104",
+        "sql": "E104",
+        "note": "F104"
+      },
+      "tables": [
+        "proj_zzdwsq"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_03_12",
+      "name": "本年度资质审批业务办理案卷数量_补充和修改数据_占比",
+      "unit": "%",
+      "definition": "“补充和修改数据”累计案卷量 / 同期资质审批业务办理案卷总量×100%；示例为 2026 年 1—8 月累计。",
+      "sql": "SELECT ROUND(num.v * 100.0 / NULLIF(den.v, 0), 2) AS zbz\nFROM (\n    SELECT COUNT(1) AS v\n    FROM proj_zzdwsq\n    WHERE xmmc = '补充和修改数据'\n      AND slrq >= DATE '2026-01-01'\n      AND slrq < DATE '2026-09-01'\n) num,\n(\n    SELECT COUNT(1) AS v\n    FROM proj_zzdwsq\n    WHERE slrq >= DATE '2026-01-01'\n      AND slrq < DATE '2026-09-01'\n) den;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 105,
+      "source_cells": {
+        "name": "A105",
+        "code": "B105",
+        "unit": "C105",
+        "definition": "D105",
+        "sql": "E105",
+        "note": "F105"
+      },
+      "tables": [
+        "proj_zzdwsq"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_03_13",
+      "name": "本年度资质审批业务办理案卷数量_基本信息变更_占比",
+      "unit": "%",
+      "definition": "“基本信息变更”累计案卷量 / 同期资质审批业务办理案卷总量×100%；示例为 2026 年 1—8 月累计。",
+      "sql": "SELECT ROUND(num.v * 100.0 / NULLIF(den.v, 0), 2) AS zbz\nFROM (\n    SELECT COUNT(1) AS v\n    FROM proj_zzdwsq\n    WHERE xmmc = '基本信息变更'\n      AND slrq >= DATE '2026-01-01'\n      AND slrq < DATE '2026-09-01'\n) num,\n(\n    SELECT COUNT(1) AS v\n    FROM proj_zzdwsq\n    WHERE slrq >= DATE '2026-01-01'\n      AND slrq < DATE '2026-09-01'\n) den;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 106,
+      "source_cells": {
+        "name": "A106",
+        "code": "B106",
+        "unit": "C106",
+        "definition": "D106",
+        "sql": "E106",
+        "note": "F106"
+      },
+      "tables": [
+        "proj_zzdwsq"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_03_14",
+      "name": "本年度资质审批业务办理案卷数量_专业类别变更_占比",
+      "unit": "%",
+      "definition": "“专业类别变更”累计案卷量 / 同期资质审批业务办理案卷总量×100%；示例为 2026 年 1—8 月累计。",
+      "sql": "SELECT ROUND(num.v * 100.0 / NULLIF(den.v, 0), 2) AS zbz\nFROM (\n    SELECT COUNT(1) AS v\n    FROM proj_zzdwsq\n    WHERE xmmc = '专业类别变更'\n      AND slrq >= DATE '2026-01-01'\n      AND slrq < DATE '2026-09-01'\n) num,\n(\n    SELECT COUNT(1) AS v\n    FROM proj_zzdwsq\n    WHERE slrq >= DATE '2026-01-01'\n      AND slrq < DATE '2026-09-01'\n) den;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 107,
+      "source_cells": {
+        "name": "A107",
+        "code": "B107",
+        "unit": "C107",
+        "definition": "D107",
+        "sql": "E107",
+        "note": "F107"
+      },
+      "tables": [
+        "proj_zzdwsq"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_03_15",
+      "name": "本年度资质审批业务办理案卷数量_延续申请_占比",
+      "unit": "%",
+      "definition": "“延续申请”累计案卷量 / 同期资质审批业务办理案卷总量×100%；示例为 2026 年 1—8 月累计。分子口径为 xmmc='延续申请'。",
+      "sql": "SELECT ROUND(num.v * 100.0 / NULLIF(den.v, 0), 2) AS zbz\nFROM (\n    SELECT COUNT(1) AS v\n    FROM proj_zzdwsq\n    WHERE xmmc = '延续申请'\n      AND slrq >= DATE '2026-01-01'\n      AND slrq < DATE '2026-09-01'\n) num,\n(\n    SELECT COUNT(1) AS v\n    FROM proj_zzdwsq\n    WHERE slrq >= DATE '2026-01-01'\n      AND slrq < DATE '2026-09-01'\n) den;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 108,
+      "source_cells": {
+        "name": "A108",
+        "code": "B108",
+        "unit": "C108",
+        "definition": "D108",
+        "sql": "E108",
+        "note": "F108"
+      },
+      "tables": [
+        "proj_zzdwsq"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_03_16",
+      "name": "本年度资质审批业务办理案卷数量_申请注销_占比",
+      "unit": "%",
+      "definition": "“申请注销”累计案卷量 / 同期资质审批业务办理案卷总量×100%；示例为 2026 年 1—8 月累计。",
+      "sql": "SELECT ROUND(num.v * 100.0 / NULLIF(den.v, 0), 2) AS zbz\nFROM (\n    SELECT COUNT(1) AS v\n    FROM proj_zzdwsq\n    WHERE xmmc = '申请注销'\n      AND slrq >= DATE '2026-01-01'\n      AND slrq < DATE '2026-09-01'\n) num,\n(\n    SELECT COUNT(1) AS v\n    FROM proj_zzdwsq\n    WHERE slrq >= DATE '2026-01-01'\n      AND slrq < DATE '2026-09-01'\n) den;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 109,
+      "source_cells": {
+        "name": "A109",
+        "code": "B109",
+        "unit": "C109",
+        "definition": "D109",
+        "sql": "E109",
+        "note": "F109"
+      },
+      "tables": [
+        "proj_zzdwsq"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_03_17",
+      "name": "本月资质审批业务办理案卷数量_资质申请",
+      "unit": "件",
+      "definition": "受理日期在 2026 年 8 月、xmmc 为“资质申请”的案卷数。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM proj_zzdwsq\nWHERE xmmc = '资质申请'\n  AND slrq >= DATE '2026-08-01'\n  AND slrq < DATE '2026-09-01';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 110,
+      "source_cells": {
+        "name": "A110",
+        "code": "B110",
+        "unit": "C110",
+        "definition": "D110",
+        "sql": "E110",
+        "note": "F110"
+      },
+      "tables": [
+        "proj_zzdwsq"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_03_18",
+      "name": "本月资质审批业务办理案卷数量_补充和修改数据",
+      "unit": "件",
+      "definition": "受理日期在 2026 年 8 月、xmmc 为“补充和修改数据”的案卷数。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM proj_zzdwsq\nWHERE xmmc = '补充和修改数据'\n  AND slrq >= DATE '2026-08-01'\n  AND slrq < DATE '2026-09-01';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 111,
+      "source_cells": {
+        "name": "A111",
+        "code": "B111",
+        "unit": "C111",
+        "definition": "D111",
+        "sql": "E111",
+        "note": "F111"
+      },
+      "tables": [
+        "proj_zzdwsq"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_03_19",
+      "name": "本月资质审批业务办理案卷数量_基本信息变更",
+      "unit": "件",
+      "definition": "受理日期在 2026 年 8 月、xmmc 为“基本信息变更”的案卷数。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM proj_zzdwsq\nWHERE xmmc = '基本信息变更'\n  AND slrq >= DATE '2026-08-01'\n  AND slrq < DATE '2026-09-01';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 112,
+      "source_cells": {
+        "name": "A112",
+        "code": "B112",
+        "unit": "C112",
+        "definition": "D112",
+        "sql": "E112",
+        "note": "F112"
+      },
+      "tables": [
+        "proj_zzdwsq"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_03_20",
+      "name": "本月资质审批业务办理案卷数量_专业类别变更",
+      "unit": "件",
+      "definition": "受理日期在 2026 年 8 月、xmmc 为“专业类别变更”的案卷数。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM proj_zzdwsq\nWHERE xmmc = '专业类别变更'\n  AND slrq >= DATE '2026-08-01'\n  AND slrq < DATE '2026-09-01';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 113,
+      "source_cells": {
+        "name": "A113",
+        "code": "B113",
+        "unit": "C113",
+        "definition": "D113",
+        "sql": "E113",
+        "note": "F113"
+      },
+      "tables": [
+        "proj_zzdwsq"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_03_21",
+      "name": "本月资质审批业务办理案卷数量_延续申请",
+      "unit": "件",
+      "definition": "受理日期在 2026 年 8 月、xmmc 为“复审换证”的案卷数。脚本以 xmmc='延续申请' 实现“延续申请”口径。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM proj_zzdwsq\nWHERE xmmc = '延续申请'\n  AND slrq >= DATE '2026-08-01'\n  AND slrq < DATE '2026-09-01';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 114,
+      "source_cells": {
+        "name": "A114",
+        "code": "B114",
+        "unit": "C114",
+        "definition": "D114",
+        "sql": "E114",
+        "note": "F114"
+      },
+      "tables": [
+        "proj_zzdwsq"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_03_22",
+      "name": "本月资质审批业务办理案卷数量_申请注销",
+      "unit": "件",
+      "definition": "受理日期在 2026 年 8 月、xmmc 为“申请注销”的案卷数。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM proj_zzdwsq\nWHERE xmmc = '申请注销'\n  AND slrq >= DATE '2026-08-01'\n  AND slrq < DATE '2026-09-01';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 115,
+      "source_cells": {
+        "name": "A115",
+        "code": "B115",
+        "unit": "C115",
+        "definition": "D115",
+        "sql": "E115",
+        "note": "F115"
+      },
+      "tables": [
+        "proj_zzdwsq"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_04_01",
+      "name": "测绘技术人员总数",
+      "unit": "人",
+      "definition": "审核状态（shzt）为“通过/认定”的全部技术人员数（含测绘专业、测绘相关专业与非专业技术人员），按所属单位（ssdw）关联资质表取所在地市；示例为广州市。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM proj_zzry t1\nLEFT JOIN xxzy_qschzzdwb t2 ON t1.ssdw = t2.sqdw\nWHERE t1.shzt IN ('认定', '通过')\n  AND t2.szds = '广州市';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 116,
+      "source_cells": {
+        "name": "A116",
+        "code": "B116",
+        "unit": "C116",
+        "definition": "D116",
+        "sql": "E116",
+        "note": "F116"
+      },
+      "tables": [
+        "proj_zzry",
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_04_02",
+      "name": "测绘技术人员_测绘专业技术人员数量",
+      "unit": "人",
+      "definition": "审核状态为“通过/认定”且类别为测绘专业（高级/中级/初级合计）的人员数；示例为广州市。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM proj_zzry t1\nLEFT JOIN xxzy_qschzzdwb t2 ON t1.ssdw = t2.sqdw\nWHERE t1.shzt IN ('认定', '通过')\n  AND t1.zyjsrylb LIKE '测绘专业(%'\n  AND t2.szds = '广州市';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 117,
+      "source_cells": {
+        "name": "A117",
+        "code": "B117",
+        "unit": "C117",
+        "definition": "D117",
+        "sql": "E117",
+        "note": "F117"
+      },
+      "tables": [
+        "proj_zzry",
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_04_03",
+      "name": "测绘技术人员_测绘专业技术人员_高级人员数量",
+      "unit": "人",
+      "definition": "审核状态为“通过/认定”且类别为“测绘专业(高级)”的人员数；示例为广州市。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM proj_zzry t1\nLEFT JOIN xxzy_qschzzdwb t2 ON t1.ssdw = t2.sqdw\nWHERE t1.shzt IN ('认定', '通过')\n  AND t1.zyjsrylb = '测绘专业(高级)'\n  AND t2.szds = '广州市';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 118,
+      "source_cells": {
+        "name": "A118",
+        "code": "B118",
+        "unit": "C118",
+        "definition": "D118",
+        "sql": "E118",
+        "note": "F118"
+      },
+      "tables": [
+        "proj_zzry",
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_04_04",
+      "name": "测绘技术人员_测绘专业技术人员_中级人员数量",
+      "unit": "人",
+      "definition": "审核状态为“通过/认定”且类别为“测绘专业(中级)”的人员数；示例为广州市。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM proj_zzry t1\nLEFT JOIN xxzy_qschzzdwb t2 ON t1.ssdw = t2.sqdw\nWHERE t1.shzt IN ('认定', '通过')\n  AND t1.zyjsrylb = '测绘专业(中级)'\n  AND t2.szds = '广州市';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 119,
+      "source_cells": {
+        "name": "A119",
+        "code": "B119",
+        "unit": "C119",
+        "definition": "D119",
+        "sql": "E119",
+        "note": "F119"
+      },
+      "tables": [
+        "proj_zzry",
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_04_05",
+      "name": "测绘技术人员数_测绘专业技术人员_初级人员数量",
+      "unit": "人",
+      "definition": "审核状态为“通过/认定”且类别为“测绘专业(初级)”的人员数；示例为广州市。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM proj_zzry t1\nLEFT JOIN xxzy_qschzzdwb t2 ON t1.ssdw = t2.sqdw\nWHERE t1.shzt IN ('认定', '通过')\n  AND t1.zyjsrylb = '测绘专业(初级)'\n  AND t2.szds = '广州市';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 120,
+      "source_cells": {
+        "name": "A120",
+        "code": "B120",
+        "unit": "C120",
+        "definition": "D120",
+        "sql": "E120",
+        "note": "F120"
+      },
+      "tables": [
+        "proj_zzry",
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_04_06",
+      "name": "测绘技术人员_测绘相关技术人员数量",
+      "unit": "人",
+      "definition": "审核状态为“通过/认定”且类别为“测绘相关专业”的人员数；示例为广州市。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM proj_zzry t1\nLEFT JOIN xxzy_qschzzdwb t2 ON t1.ssdw = t2.sqdw\nWHERE t1.shzt IN ('认定', '通过')\n  AND t1.zyjsrylb = '测绘相关专业'\n  AND t2.szds = '广州市';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 121,
+      "source_cells": {
+        "name": "A121",
+        "code": "B121",
+        "unit": "C121",
+        "definition": "D121",
+        "sql": "E121",
+        "note": "F121"
+      },
+      "tables": [
+        "proj_zzry",
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_04_07",
+      "name": "测绘技术人员_非专业技术人员数量",
+      "unit": "人",
+      "definition": "审核状态为“通过/认定”且类别为“非专业技术人员”的人员数；示例为广州市。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM proj_zzry t1\nLEFT JOIN xxzy_qschzzdwb t2 ON t1.ssdw = t2.sqdw\nWHERE t1.shzt IN ('认定', '通过')\n  AND t1.zyjsrylb = '非专业技术人员'\n  AND t2.szds = '广州市';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 122,
+      "source_cells": {
+        "name": "A122",
+        "code": "B122",
+        "unit": "C122",
+        "definition": "D122",
+        "sql": "E122",
+        "note": "F122"
+      },
+      "tables": [
+        "proj_zzry",
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_05_01",
+      "name": "测绘作业证持证人员数量",
+      "unit": "人",
+      "definition": "有效期结束日期（YXQJSRQ）晚于 2026-08-31、所在区域（szqy）含“广州市”的有效作业证数量；示例为广州市、2026 年 8 月末。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM proj_up_surveydata\nWHERE yxqjsrq > DATE '2026-08-31'\n  AND szqy LIKE '%广州市%';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 123,
+      "source_cells": {
+        "name": "A123",
+        "code": "B123",
+        "unit": "C123",
+        "definition": "D123",
+        "sql": "E123",
+        "note": "F123"
+      },
+      "tables": [
+        "proj_up_surveydata"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "CHZZ_05_02",
+      "name": "测绘作业证持有率",
+      "unit": "%",
+      "definition": "有效作业证数量 / 审核通过的全部测绘技术人员数量×100%（分母含测绘专业高/中/初级、测绘相关专业、非专业技术人员五类）；示例为广州市、2026 年 8 月末。",
+      "sql": "SELECT ROUND(num.v * 100.0 / NULLIF(den.v, 0), 2) AS zbz\nFROM (\n    SELECT COUNT(1) AS v\n    FROM proj_up_surveydata\n    WHERE yxqjsrq > DATE '2026-08-31'\n      AND szqy LIKE '%广州市%'\n) num,\n(\n    SELECT COUNT(1) AS v\n    FROM proj_zzry t1\n    LEFT JOIN xxzy_qschzzdwb t2 ON t1.ssdw = t2.sqdw\n    WHERE t1.shzt IN ('认定', '通过')\n      AND t2.szds = '广州市'\n) den;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 124,
+      "source_cells": {
+        "name": "A124",
+        "code": "B124",
+        "unit": "C124",
+        "definition": "D124",
+        "sql": "E124",
+        "note": "F124"
+      },
+      "tables": [
+        "proj_up_surveydata",
+        "proj_zzry",
+        "xxzy_qschzzdwb"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_01_01",
+      "name": "本年度基础测绘项目数量",
+      "unit": "个",
+      "definition": "项目年度（nd）=2026 且承担（报送）单位为五家厅属单位之一的基础测绘项目数；示例为 2026 年度省级口径。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM jcch_xm\nWHERE nd = '2026'\n  AND jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心');",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 125,
+      "source_cells": {
+        "name": "A125",
+        "code": "B125",
+        "unit": "C125",
+        "definition": "D125",
+        "sql": "E125",
+        "note": "F125"
+      },
+      "tables": [
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_01_02",
+      "name": "本年度基础测绘项目数量_同比",
+      "unit": "%",
+      "definition": "（2026 年项目数−2025 年项目数）/2025 年项目数×100%；2025 年取旧表 proj_basemapping（承担单位为全称）。",
+      "sql": "SELECT COALESCE(ROUND((cur.v - base.v) * 100.0 / NULLIF(base.v, 0), 2), 0) AS zbz\nFROM (\n    SELECT COUNT(1) AS v\n    FROM jcch_xm\n    WHERE nd = '2026'\n      AND jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n) cur,\n(\n    SELECT COUNT(1) AS v\n    FROM proj_basemapping\n    WHERE xmnd = '2025'\n      AND cddw IN ('广东省国土资源技术中心', '广东省国土资源测绘院', '广东省国土资源档案馆',\n               '广东省测绘产品质量监督检验中心', '广东省地图院')\n) base;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 126,
+      "source_cells": {
+        "name": "A126",
+        "code": "B126",
+        "unit": "C126",
+        "definition": "D126",
+        "sql": "E126",
+        "note": "F126"
+      },
+      "tables": [
+        "jcch_xm",
+        "proj_basemapping"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_01_03",
+      "name": "本年度基础测绘项目预算金额",
+      "unit": "万元",
+      "definition": "2026 年项目按最新一次报送（bsrq 最大）的预算金额（xmje）汇总；xmje 为文本，需转数值。",
+      "sql": "SELECT SUM(COALESCE(CAST(t3.xmje AS NUMERIC), 0)) AS zbz\nFROM jcch_xm t1\nLEFT JOIN (\n    SELECT DISTINCT ON (xmid) xmid, xmje\n    FROM jcch_jyljcchxm\n    ORDER BY xmid, bsrq DESC\n) t3 ON t3.xmid = t1.rid\nWHERE t1.nd = '2026'\n  AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心');",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 127,
+      "source_cells": {
+        "name": "A127",
+        "code": "B127",
+        "unit": "C127",
+        "definition": "D127",
+        "sql": "E127",
+        "note": "F127"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_01_04",
+      "name": "本年度基础测绘预算金额_同比",
+      "unit": "%",
+      "definition": "（2026 年预算总额−2025 年预算总额）/2025 年预算总额×100%；2025 年取旧表预算金额（ysje）。",
+      "sql": "SELECT COALESCE(ROUND((cur.v - base.v) * 100.0 / NULLIF(base.v, 0), 2), 0) AS zbz\nFROM (\n    SELECT SUM(COALESCE(CAST(t3.xmje AS NUMERIC), 0)) AS v\n    FROM jcch_xm t1\n    LEFT JOIN (SELECT DISTINCT ON (xmid) xmid, xmje FROM jcch_jyljcchxm\n               ORDER BY xmid, bsrq DESC) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n) cur,\n(\n    SELECT COALESCE(SUM(ysje), 0) AS v\n    FROM proj_basemapping\n    WHERE xmnd = '2025'\n      AND cddw IN ('广东省国土资源技术中心', '广东省国土资源测绘院', '广东省国土资源档案馆',\n               '广东省测绘产品质量监督检验中心', '广东省地图院')\n) base;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 128,
+      "source_cells": {
+        "name": "A128",
+        "code": "B128",
+        "unit": "C128",
+        "definition": "D128",
+        "sql": "E128",
+        "note": "F128"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm",
+        "proj_basemapping"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_01_05",
+      "name": "本年度基础测绘项目数量_测绘院",
+      "unit": "个",
+      "definition": "2026 年度承担单位为测绘院的基础测绘项目数。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM jcch_xm\nWHERE nd = '2026'\n  AND jsdw = '测绘院';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 129,
+      "source_cells": {
+        "name": "A129",
+        "code": "B129",
+        "unit": "C129",
+        "definition": "D129",
+        "sql": "E129",
+        "note": "F129"
+      },
+      "tables": [
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_01_06",
+      "name": "本年度基础测绘项目数量_技术中心",
+      "unit": "个",
+      "definition": "2026 年度承担单位为技术中心的基础测绘项目数。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM jcch_xm\nWHERE nd = '2026'\n  AND jsdw = '技术中心';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 130,
+      "source_cells": {
+        "name": "A130",
+        "code": "B130",
+        "unit": "C130",
+        "definition": "D130",
+        "sql": "E130",
+        "note": "F130"
+      },
+      "tables": [
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_01_07",
+      "name": "本年度基础测绘项目数量_地图院",
+      "unit": "个",
+      "definition": "2026 年度承担单位为地图院的基础测绘项目数。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM jcch_xm\nWHERE nd = '2026'\n  AND jsdw = '地图院';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 131,
+      "source_cells": {
+        "name": "A131",
+        "code": "B131",
+        "unit": "C131",
+        "definition": "D131",
+        "sql": "E131",
+        "note": "F131"
+      },
+      "tables": [
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_01_08",
+      "name": "本年度基础测绘项目数量_质检中心",
+      "unit": "个",
+      "definition": "2026 年度承担单位为质检中心的基础测绘项目数。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM jcch_xm\nWHERE nd = '2026'\n  AND jsdw = '质检中心';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 132,
+      "source_cells": {
+        "name": "A132",
+        "code": "B132",
+        "unit": "C132",
+        "definition": "D132",
+        "sql": "E132",
+        "note": "F132"
+      },
+      "tables": [
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_01_09",
+      "name": "本年度基础测绘项目数量_档案馆",
+      "unit": "个",
+      "definition": "2026 年度承担单位为档案馆的基础测绘项目数。",
+      "sql": "SELECT COUNT(1) AS zbz\nFROM jcch_xm\nWHERE nd = '2026'\n  AND jsdw = '档案馆';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 133,
+      "source_cells": {
+        "name": "A133",
+        "code": "B133",
+        "unit": "C133",
+        "definition": "D133",
+        "sql": "E133",
+        "note": "F133"
+      },
+      "tables": [
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_01_10",
+      "name": "本年度基础测绘项目投入金额_测绘院",
+      "unit": "万元",
+      "definition": "2026 年度承担单位为测绘院的项目按最新报送预算金额（xmje）汇总。",
+      "sql": "SELECT SUM(COALESCE(CAST(t3.xmje AS NUMERIC), 0)) AS zbz\nFROM jcch_xm t1\nLEFT JOIN (\n    SELECT DISTINCT ON (xmid) xmid, xmje\n    FROM jcch_jyljcchxm\n    ORDER BY xmid, bsrq DESC\n) t3 ON t3.xmid = t1.rid\nWHERE t1.nd = '2026'\n  AND t1.jsdw = '测绘院';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 134,
+      "source_cells": {
+        "name": "A134",
+        "code": "B134",
+        "unit": "C134",
+        "definition": "D134",
+        "sql": "E134",
+        "note": "F134"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_01_11",
+      "name": "本年度基础测绘项目投入金额_技术中心",
+      "unit": "万元",
+      "definition": "2026 年度承担单位为技术中心的项目按最新报送预算金额（xmje）汇总。",
+      "sql": "SELECT SUM(COALESCE(CAST(t3.xmje AS NUMERIC), 0)) AS zbz\nFROM jcch_xm t1\nLEFT JOIN (\n    SELECT DISTINCT ON (xmid) xmid, xmje\n    FROM jcch_jyljcchxm\n    ORDER BY xmid, bsrq DESC\n) t3 ON t3.xmid = t1.rid\nWHERE t1.nd = '2026'\n  AND t1.jsdw = '技术中心';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 135,
+      "source_cells": {
+        "name": "A135",
+        "code": "B135",
+        "unit": "C135",
+        "definition": "D135",
+        "sql": "E135",
+        "note": "F135"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_01_12",
+      "name": "本年度基础测绘项目投入金额_地图院",
+      "unit": "万元",
+      "definition": "2026 年度承担单位为地图院的项目按最新报送预算金额（xmje）汇总。",
+      "sql": "SELECT SUM(COALESCE(CAST(t3.xmje AS NUMERIC), 0)) AS zbz\nFROM jcch_xm t1\nLEFT JOIN (\n    SELECT DISTINCT ON (xmid) xmid, xmje\n    FROM jcch_jyljcchxm\n    ORDER BY xmid, bsrq DESC\n) t3 ON t3.xmid = t1.rid\nWHERE t1.nd = '2026'\n  AND t1.jsdw = '地图院';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 136,
+      "source_cells": {
+        "name": "A136",
+        "code": "B136",
+        "unit": "C136",
+        "definition": "D136",
+        "sql": "E136",
+        "note": "F136"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_01_13",
+      "name": "本年度基础测绘项目投入金额_质检中心",
+      "unit": "万元",
+      "definition": "2026 年度承担单位为质检中心的项目按最新报送预算金额（xmje）汇总。",
+      "sql": "SELECT SUM(COALESCE(CAST(t3.xmje AS NUMERIC), 0)) AS zbz\nFROM jcch_xm t1\nLEFT JOIN (\n    SELECT DISTINCT ON (xmid) xmid, xmje\n    FROM jcch_jyljcchxm\n    ORDER BY xmid, bsrq DESC\n) t3 ON t3.xmid = t1.rid\nWHERE t1.nd = '2026'\n  AND t1.jsdw = '质检中心';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 137,
+      "source_cells": {
+        "name": "A137",
+        "code": "B137",
+        "unit": "C137",
+        "definition": "D137",
+        "sql": "E137",
+        "note": "F137"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_01_14",
+      "name": "本年度基础测绘项目投入金额_档案馆",
+      "unit": "万元",
+      "definition": "2026 年度承担单位为档案馆的项目按最新报送预算金额（xmje）汇总。",
+      "sql": "SELECT SUM(COALESCE(CAST(t3.xmje AS NUMERIC), 0)) AS zbz\nFROM jcch_xm t1\nLEFT JOIN (\n    SELECT DISTINCT ON (xmid) xmid, xmje\n    FROM jcch_jyljcchxm\n    ORDER BY xmid, bsrq DESC\n) t3 ON t3.xmid = t1.rid\nWHERE t1.nd = '2026'\n  AND t1.jsdw = '档案馆';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 138,
+      "source_cells": {
+        "name": "A138",
+        "code": "B138",
+        "unit": "C138",
+        "definition": "D138",
+        "sql": "E138",
+        "note": "F138"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_02_01",
+      "name": "本年度基础测绘项目已使用资金",
+      "unit": "万元",
+      "definition": "已使用资金＝各项目截至 2026-08-31 前最新一次报送的累计已支出金额（yzcje）之和；项目清单取自 jcch_xm（nd=2026），进度取自 jcch_jyljcchxm（xmid 关联 rid，bsrq 倒序取最新一条）。",
+      "sql": "WITH used AS (\n    SELECT t1.jsdw,\n           SUM(COALESCE(CAST(NULLIF(REGEXP_REPLACE(t3.yzcje, '[^0-9.\\-]', '', 'g'), '') AS NUMERIC), 0)) AS v\n    FROM jcch_xm t1\n    LEFT JOIN (\n        SELECT DISTINCT ON (xmid) xmid, yzcje\n        FROM jcch_jyljcchxm\n        WHERE LEFT(bsrq, 4) = '2026'\n          AND CAST((regexp_match(bsrq, '^[0-9]{4}-([0-9]+)'))[1] AS INTEGER) <= 8\n        ORDER BY xmid, bsrq DESC\n    ) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n    GROUP BY t1.jsdw\n)\nSELECT COALESCE(SUM(v), 0) AS zbz\nFROM used;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 139,
+      "source_cells": {
+        "name": "A139",
+        "code": "B139",
+        "unit": "C139",
+        "definition": "D139",
+        "sql": "E139",
+        "note": "F139"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_02_02",
+      "name": "本年度基础测绘项目已使用资金_同比",
+      "unit": "%",
+      "definition": "（本年已使用资金−上年同期已使用资金）/上年同期已使用资金×100%；2026 版新表自 2026 年启用、无 2025 年同口径报送数据，基期为 0，脚本按 0 落库。",
+      "sql": "WITH cur AS (\n    SELECT COALESCE(SUM(COALESCE(CAST(t3.yzcje AS NUMERIC), 0)), 0) AS v\n    FROM jcch_xm t1\n    LEFT JOIN (SELECT DISTINCT ON (xmid) xmid, yzcje FROM jcch_jyljcchxm\n               WHERE LEFT(bsrq, 4) = '2026'\n                 AND CAST((regexp_match(bsrq, '^[0-9]{4}-([0-9]+)'))[1] AS INTEGER) <= 8\n               ORDER BY xmid, bsrq DESC) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n), base AS (\n    SELECT COALESCE(SUM(COALESCE(CAST(t3.yzcje AS NUMERIC), 0)), 0) AS v\n    FROM jcch_xm t1\n    LEFT JOIN (SELECT DISTINCT ON (xmid) xmid, yzcje FROM jcch_jyljcchxm\n               WHERE LEFT(bsrq, 4) = '2025'\n                 AND CAST((regexp_match(bsrq, '^[0-9]{4}-([0-9]+)'))[1] AS INTEGER) <= 8\n               ORDER BY xmid, bsrq DESC) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2025'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n)\nSELECT CASE WHEN base.v = 0 THEN '0'\n            ELSE ROUND((cur.v - base.v) * 100.0 / base.v, 2)::text END AS zbz\nFROM cur, base;",
+      "source_note": "该指标无数据支撑",
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 140,
+      "source_cells": {
+        "name": "A140",
+        "code": "B140",
+        "unit": "C140",
+        "definition": "D140",
+        "sql": "E140",
+        "note": "F140"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "requires_comparable_history"
+    },
+    {
+      "code": "JCCH_02_03",
+      "name": "本年度基础测绘项目剩余资金",
+      "unit": "万元",
+      "definition": "剩余资金＝项目预算总额（最新报送 xmje）−截至 2026-08-31 已使用资金；示例为全省合计。",
+      "sql": "WITH used AS (\n    SELECT t1.jsdw,\n           SUM(COALESCE(CAST(NULLIF(REGEXP_REPLACE(t3.yzcje, '[^0-9.\\-]', '', 'g'), '') AS NUMERIC), 0)) AS v\n    FROM jcch_xm t1\n    LEFT JOIN (\n        SELECT DISTINCT ON (xmid) xmid, yzcje\n        FROM jcch_jyljcchxm\n        WHERE LEFT(bsrq, 4) = '2026'\n          AND CAST((regexp_match(bsrq, '^[0-9]{4}-([0-9]+)'))[1] AS INTEGER) <= 8\n        ORDER BY xmid, bsrq DESC\n    ) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n    GROUP BY t1.jsdw\n),\nbudget AS (\n    SELECT t1.jsdw, SUM(COALESCE(CAST(t3.xmje AS NUMERIC), 0)) AS v\n    FROM jcch_xm t1\n    LEFT JOIN (SELECT DISTINCT ON (xmid) xmid, xmje FROM jcch_jyljcchxm\n               ORDER BY xmid, bsrq DESC) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n    GROUP BY t1.jsdw\n)\nSELECT COALESCE((SELECT SUM(v) FROM budget), 0)\n     - COALESCE((SELECT SUM(v) FROM used), 0) AS zbz;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 141,
+      "source_cells": {
+        "name": "A141",
+        "code": "B141",
+        "unit": "C141",
+        "definition": "D141",
+        "sql": "E141",
+        "note": "F141"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_02_04",
+      "name": "本年度基础测绘项目剩余资金_同比",
+      "unit": "%",
+      "definition": "（本年剩余资金−上年同月剩余资金）/上年同月剩余资金×100%；2026 版新表无 2025 年同口径进度数据，基期为 0，脚本按 0 落库。",
+      "sql": "-- 基期（2025 年 8 月）无同口径报送数据，按脚本规则固定落 0；\n-- 基期补齐后按 (本年剩余资金 - 上年同月剩余资金) / 上年同月剩余资金 * 100 计算\nSELECT '0'::text AS zbz;",
+      "source_note": "该指标无数据支撑",
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 142,
+      "source_cells": {
+        "name": "A142",
+        "code": "B142",
+        "unit": "C142",
+        "definition": "D142",
+        "sql": "E142",
+        "note": "F142"
+      },
+      "tables": [],
+      "availability": "requires_comparable_history"
+    },
+    {
+      "code": "JCCH_02_05",
+      "name": "本年度基础测绘项目资金执行率",
+      "unit": "%",
+      "definition": "资金执行率＝截至 2026-08-31 已使用资金 / 项目预算总额×100%；示例为全省合计。",
+      "sql": "WITH used AS (\n    SELECT t1.jsdw,\n           SUM(COALESCE(CAST(NULLIF(REGEXP_REPLACE(t3.yzcje, '[^0-9.\\-]', '', 'g'), '') AS NUMERIC), 0)) AS v\n    FROM jcch_xm t1\n    LEFT JOIN (\n        SELECT DISTINCT ON (xmid) xmid, yzcje\n        FROM jcch_jyljcchxm\n        WHERE LEFT(bsrq, 4) = '2026'\n          AND CAST((regexp_match(bsrq, '^[0-9]{4}-([0-9]+)'))[1] AS INTEGER) <= 8\n        ORDER BY xmid, bsrq DESC\n    ) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n    GROUP BY t1.jsdw\n),\nbudget AS (\n    SELECT t1.jsdw, SUM(COALESCE(CAST(t3.xmje AS NUMERIC), 0)) AS v\n    FROM jcch_xm t1\n    LEFT JOIN (SELECT DISTINCT ON (xmid) xmid, xmje FROM jcch_jyljcchxm\n               ORDER BY xmid, bsrq DESC) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n    GROUP BY t1.jsdw\n)\nSELECT ROUND(COALESCE((SELECT SUM(v) FROM used), 0) * 100.0\n             / NULLIF((SELECT SUM(v) FROM budget), 0), 2) AS zbz;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 143,
+      "source_cells": {
+        "name": "A143",
+        "code": "B143",
+        "unit": "C143",
+        "definition": "D143",
+        "sql": "E143",
+        "note": "F143"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_02_06",
+      "name": "本年度基础测绘项目资金执行率_同比",
+      "unit": "%",
+      "definition": "（本年资金执行率−上年同月资金执行率）/上年同月资金执行率×100%；2026 版新表无 2025 年同口径进度数据，脚本按 0 落库。",
+      "sql": "-- 基期（2025 年 8 月）执行率无同口径数据，按脚本规则固定落 0\nSELECT '0'::text AS zbz;",
+      "source_note": "该指标无数据支撑",
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 144,
+      "source_cells": {
+        "name": "A144",
+        "code": "B144",
+        "unit": "C144",
+        "definition": "D144",
+        "sql": "E144",
+        "note": "F144"
+      },
+      "tables": [],
+      "availability": "requires_comparable_history"
+    },
+    {
+      "code": "JCCH_02_07",
+      "name": "本年度基础测绘项目已使用资金_测绘院",
+      "unit": "万元",
+      "definition": "承担单位为测绘院的项目截至 2026-08-31 已使用资金之和。",
+      "sql": "WITH used AS (\n    SELECT t1.jsdw,\n           SUM(COALESCE(CAST(NULLIF(REGEXP_REPLACE(t3.yzcje, '[^0-9.\\-]', '', 'g'), '') AS NUMERIC), 0)) AS v\n    FROM jcch_xm t1\n    LEFT JOIN (\n        SELECT DISTINCT ON (xmid) xmid, yzcje\n        FROM jcch_jyljcchxm\n        WHERE LEFT(bsrq, 4) = '2026'\n          AND CAST((regexp_match(bsrq, '^[0-9]{4}-([0-9]+)'))[1] AS INTEGER) <= 8\n        ORDER BY xmid, bsrq DESC\n    ) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n    GROUP BY t1.jsdw\n)\nSELECT COALESCE(SUM(v) FILTER (WHERE jsdw = '测绘院'), 0) AS zbz\nFROM used;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 145,
+      "source_cells": {
+        "name": "A145",
+        "code": "B145",
+        "unit": "C145",
+        "definition": "D145",
+        "sql": "E145",
+        "note": "F145"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_02_08",
+      "name": "本年度基础测绘项目已使用资金_技术中心",
+      "unit": "万元",
+      "definition": "承担单位为技术中心的项目截至 2026-08-31 已使用资金之和。",
+      "sql": "WITH used AS (\n    SELECT t1.jsdw,\n           SUM(COALESCE(CAST(NULLIF(REGEXP_REPLACE(t3.yzcje, '[^0-9.\\-]', '', 'g'), '') AS NUMERIC), 0)) AS v\n    FROM jcch_xm t1\n    LEFT JOIN (\n        SELECT DISTINCT ON (xmid) xmid, yzcje\n        FROM jcch_jyljcchxm\n        WHERE LEFT(bsrq, 4) = '2026'\n          AND CAST((regexp_match(bsrq, '^[0-9]{4}-([0-9]+)'))[1] AS INTEGER) <= 8\n        ORDER BY xmid, bsrq DESC\n    ) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n    GROUP BY t1.jsdw\n)\nSELECT COALESCE(SUM(v) FILTER (WHERE jsdw = '技术中心'), 0) AS zbz\nFROM used;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 146,
+      "source_cells": {
+        "name": "A146",
+        "code": "B146",
+        "unit": "C146",
+        "definition": "D146",
+        "sql": "E146",
+        "note": "F146"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_02_09",
+      "name": "本年度基础测绘项目已使用资金_地图院",
+      "unit": "万元",
+      "definition": "承担单位为地图院的项目截至 2026-08-31 已使用资金之和。",
+      "sql": "WITH used AS (\n    SELECT t1.jsdw,\n           SUM(COALESCE(CAST(NULLIF(REGEXP_REPLACE(t3.yzcje, '[^0-9.\\-]', '', 'g'), '') AS NUMERIC), 0)) AS v\n    FROM jcch_xm t1\n    LEFT JOIN (\n        SELECT DISTINCT ON (xmid) xmid, yzcje\n        FROM jcch_jyljcchxm\n        WHERE LEFT(bsrq, 4) = '2026'\n          AND CAST((regexp_match(bsrq, '^[0-9]{4}-([0-9]+)'))[1] AS INTEGER) <= 8\n        ORDER BY xmid, bsrq DESC\n    ) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n    GROUP BY t1.jsdw\n)\nSELECT COALESCE(SUM(v) FILTER (WHERE jsdw = '地图院'), 0) AS zbz\nFROM used;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 147,
+      "source_cells": {
+        "name": "A147",
+        "code": "B147",
+        "unit": "C147",
+        "definition": "D147",
+        "sql": "E147",
+        "note": "F147"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_02_10",
+      "name": "本年度基础测绘项目已使用资金_质检中心",
+      "unit": "万元",
+      "definition": "承担单位为质检中心的项目截至 2026-08-31 已使用资金之和。",
+      "sql": "WITH used AS (\n    SELECT t1.jsdw,\n           SUM(COALESCE(CAST(NULLIF(REGEXP_REPLACE(t3.yzcje, '[^0-9.\\-]', '', 'g'), '') AS NUMERIC), 0)) AS v\n    FROM jcch_xm t1\n    LEFT JOIN (\n        SELECT DISTINCT ON (xmid) xmid, yzcje\n        FROM jcch_jyljcchxm\n        WHERE LEFT(bsrq, 4) = '2026'\n          AND CAST((regexp_match(bsrq, '^[0-9]{4}-([0-9]+)'))[1] AS INTEGER) <= 8\n        ORDER BY xmid, bsrq DESC\n    ) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n    GROUP BY t1.jsdw\n)\nSELECT COALESCE(SUM(v) FILTER (WHERE jsdw = '质检中心'), 0) AS zbz\nFROM used;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 148,
+      "source_cells": {
+        "name": "A148",
+        "code": "B148",
+        "unit": "C148",
+        "definition": "D148",
+        "sql": "E148",
+        "note": "F148"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_02_11",
+      "name": "本年度基础测绘项目已使用资金_档案馆",
+      "unit": "万元",
+      "definition": "承担单位为档案馆的项目截至 2026-08-31 已使用资金之和。",
+      "sql": "WITH used AS (\n    SELECT t1.jsdw,\n           SUM(COALESCE(CAST(NULLIF(REGEXP_REPLACE(t3.yzcje, '[^0-9.\\-]', '', 'g'), '') AS NUMERIC), 0)) AS v\n    FROM jcch_xm t1\n    LEFT JOIN (\n        SELECT DISTINCT ON (xmid) xmid, yzcje\n        FROM jcch_jyljcchxm\n        WHERE LEFT(bsrq, 4) = '2026'\n          AND CAST((regexp_match(bsrq, '^[0-9]{4}-([0-9]+)'))[1] AS INTEGER) <= 8\n        ORDER BY xmid, bsrq DESC\n    ) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n    GROUP BY t1.jsdw\n)\nSELECT COALESCE(SUM(v) FILTER (WHERE jsdw = '档案馆'), 0) AS zbz\nFROM used;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 149,
+      "source_cells": {
+        "name": "A149",
+        "code": "B149",
+        "unit": "C149",
+        "definition": "D149",
+        "sql": "E149",
+        "note": "F149"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_02_12",
+      "name": "本年度基础测绘项目剩余资金_测绘院",
+      "unit": "万元",
+      "definition": "承担单位为测绘院的项目预算总额−已使用资金。",
+      "sql": "WITH used AS (\n    SELECT t1.jsdw,\n           SUM(COALESCE(CAST(NULLIF(REGEXP_REPLACE(t3.yzcje, '[^0-9.\\-]', '', 'g'), '') AS NUMERIC), 0)) AS v\n    FROM jcch_xm t1\n    LEFT JOIN (\n        SELECT DISTINCT ON (xmid) xmid, yzcje\n        FROM jcch_jyljcchxm\n        WHERE LEFT(bsrq, 4) = '2026'\n          AND CAST((regexp_match(bsrq, '^[0-9]{4}-([0-9]+)'))[1] AS INTEGER) <= 8\n        ORDER BY xmid, bsrq DESC\n    ) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n    GROUP BY t1.jsdw\n),\nbudget AS (\n    SELECT t1.jsdw, SUM(COALESCE(CAST(t3.xmje AS NUMERIC), 0)) AS v\n    FROM jcch_xm t1\n    LEFT JOIN (SELECT DISTINCT ON (xmid) xmid, xmje FROM jcch_jyljcchxm\n               ORDER BY xmid, bsrq DESC) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n    GROUP BY t1.jsdw\n)\nSELECT COALESCE((SELECT SUM(v) FROM budget WHERE jsdw = '测绘院'), 0)\n     - COALESCE((SELECT SUM(v) FROM used   WHERE jsdw = '测绘院'), 0) AS zbz;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 150,
+      "source_cells": {
+        "name": "A150",
+        "code": "B150",
+        "unit": "C150",
+        "definition": "D150",
+        "sql": "E150",
+        "note": "F150"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_02_13",
+      "name": "本年度基础测绘项目剩余资金_技术中心",
+      "unit": "万元",
+      "definition": "承担单位为技术中心的项目预算总额−已使用资金。",
+      "sql": "WITH used AS (\n    SELECT t1.jsdw,\n           SUM(COALESCE(CAST(NULLIF(REGEXP_REPLACE(t3.yzcje, '[^0-9.\\-]', '', 'g'), '') AS NUMERIC), 0)) AS v\n    FROM jcch_xm t1\n    LEFT JOIN (\n        SELECT DISTINCT ON (xmid) xmid, yzcje\n        FROM jcch_jyljcchxm\n        WHERE LEFT(bsrq, 4) = '2026'\n          AND CAST((regexp_match(bsrq, '^[0-9]{4}-([0-9]+)'))[1] AS INTEGER) <= 8\n        ORDER BY xmid, bsrq DESC\n    ) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n    GROUP BY t1.jsdw\n),\nbudget AS (\n    SELECT t1.jsdw, SUM(COALESCE(CAST(t3.xmje AS NUMERIC), 0)) AS v\n    FROM jcch_xm t1\n    LEFT JOIN (SELECT DISTINCT ON (xmid) xmid, xmje FROM jcch_jyljcchxm\n               ORDER BY xmid, bsrq DESC) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n    GROUP BY t1.jsdw\n)\nSELECT COALESCE((SELECT SUM(v) FROM budget WHERE jsdw = '技术中心'), 0)\n     - COALESCE((SELECT SUM(v) FROM used   WHERE jsdw = '技术中心'), 0) AS zbz;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 151,
+      "source_cells": {
+        "name": "A151",
+        "code": "B151",
+        "unit": "C151",
+        "definition": "D151",
+        "sql": "E151",
+        "note": "F151"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_02_14",
+      "name": "本年度基础测绘项目剩余资金_地图院",
+      "unit": "万元",
+      "definition": "承担单位为地图院的项目预算总额−已使用资金。",
+      "sql": "WITH used AS (\n    SELECT t1.jsdw,\n           SUM(COALESCE(CAST(NULLIF(REGEXP_REPLACE(t3.yzcje, '[^0-9.\\-]', '', 'g'), '') AS NUMERIC), 0)) AS v\n    FROM jcch_xm t1\n    LEFT JOIN (\n        SELECT DISTINCT ON (xmid) xmid, yzcje\n        FROM jcch_jyljcchxm\n        WHERE LEFT(bsrq, 4) = '2026'\n          AND CAST((regexp_match(bsrq, '^[0-9]{4}-([0-9]+)'))[1] AS INTEGER) <= 8\n        ORDER BY xmid, bsrq DESC\n    ) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n    GROUP BY t1.jsdw\n),\nbudget AS (\n    SELECT t1.jsdw, SUM(COALESCE(CAST(t3.xmje AS NUMERIC), 0)) AS v\n    FROM jcch_xm t1\n    LEFT JOIN (SELECT DISTINCT ON (xmid) xmid, xmje FROM jcch_jyljcchxm\n               ORDER BY xmid, bsrq DESC) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n    GROUP BY t1.jsdw\n)\nSELECT COALESCE((SELECT SUM(v) FROM budget WHERE jsdw = '地图院'), 0)\n     - COALESCE((SELECT SUM(v) FROM used   WHERE jsdw = '地图院'), 0) AS zbz;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 152,
+      "source_cells": {
+        "name": "A152",
+        "code": "B152",
+        "unit": "C152",
+        "definition": "D152",
+        "sql": "E152",
+        "note": "F152"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_02_15",
+      "name": "本年度基础测绘项目剩余资金_质检中心",
+      "unit": "万元",
+      "definition": "承担单位为质检中心的项目预算总额−已使用资金。",
+      "sql": "WITH used AS (\n    SELECT t1.jsdw,\n           SUM(COALESCE(CAST(NULLIF(REGEXP_REPLACE(t3.yzcje, '[^0-9.\\-]', '', 'g'), '') AS NUMERIC), 0)) AS v\n    FROM jcch_xm t1\n    LEFT JOIN (\n        SELECT DISTINCT ON (xmid) xmid, yzcje\n        FROM jcch_jyljcchxm\n        WHERE LEFT(bsrq, 4) = '2026'\n          AND CAST((regexp_match(bsrq, '^[0-9]{4}-([0-9]+)'))[1] AS INTEGER) <= 8\n        ORDER BY xmid, bsrq DESC\n    ) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n    GROUP BY t1.jsdw\n),\nbudget AS (\n    SELECT t1.jsdw, SUM(COALESCE(CAST(t3.xmje AS NUMERIC), 0)) AS v\n    FROM jcch_xm t1\n    LEFT JOIN (SELECT DISTINCT ON (xmid) xmid, xmje FROM jcch_jyljcchxm\n               ORDER BY xmid, bsrq DESC) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n    GROUP BY t1.jsdw\n)\nSELECT COALESCE((SELECT SUM(v) FROM budget WHERE jsdw = '质检中心'), 0)\n     - COALESCE((SELECT SUM(v) FROM used   WHERE jsdw = '质检中心'), 0) AS zbz;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 153,
+      "source_cells": {
+        "name": "A153",
+        "code": "B153",
+        "unit": "C153",
+        "definition": "D153",
+        "sql": "E153",
+        "note": "F153"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_02_16",
+      "name": "本年度基础测绘项目剩余资金_档案馆",
+      "unit": "万元",
+      "definition": "承担单位为档案馆的项目预算总额−已使用资金。",
+      "sql": "WITH used AS (\n    SELECT t1.jsdw,\n           SUM(COALESCE(CAST(NULLIF(REGEXP_REPLACE(t3.yzcje, '[^0-9.\\-]', '', 'g'), '') AS NUMERIC), 0)) AS v\n    FROM jcch_xm t1\n    LEFT JOIN (\n        SELECT DISTINCT ON (xmid) xmid, yzcje\n        FROM jcch_jyljcchxm\n        WHERE LEFT(bsrq, 4) = '2026'\n          AND CAST((regexp_match(bsrq, '^[0-9]{4}-([0-9]+)'))[1] AS INTEGER) <= 8\n        ORDER BY xmid, bsrq DESC\n    ) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n    GROUP BY t1.jsdw\n),\nbudget AS (\n    SELECT t1.jsdw, SUM(COALESCE(CAST(t3.xmje AS NUMERIC), 0)) AS v\n    FROM jcch_xm t1\n    LEFT JOIN (SELECT DISTINCT ON (xmid) xmid, xmje FROM jcch_jyljcchxm\n               ORDER BY xmid, bsrq DESC) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n    GROUP BY t1.jsdw\n)\nSELECT COALESCE((SELECT SUM(v) FROM budget WHERE jsdw = '档案馆'), 0)\n     - COALESCE((SELECT SUM(v) FROM used   WHERE jsdw = '档案馆'), 0) AS zbz;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 154,
+      "source_cells": {
+        "name": "A154",
+        "code": "B154",
+        "unit": "C154",
+        "definition": "D154",
+        "sql": "E154",
+        "note": "F154"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_02_17",
+      "name": "本年度基础测绘项目资金执行率_测绘院",
+      "unit": "%",
+      "definition": "承担单位为测绘院的项目已使用资金 / 该项目预算总额×100%。",
+      "sql": "WITH used AS (\n    SELECT t1.jsdw,\n           SUM(COALESCE(CAST(NULLIF(REGEXP_REPLACE(t3.yzcje, '[^0-9.\\-]', '', 'g'), '') AS NUMERIC), 0)) AS v\n    FROM jcch_xm t1\n    LEFT JOIN (\n        SELECT DISTINCT ON (xmid) xmid, yzcje\n        FROM jcch_jyljcchxm\n        WHERE LEFT(bsrq, 4) = '2026'\n          AND CAST((regexp_match(bsrq, '^[0-9]{4}-([0-9]+)'))[1] AS INTEGER) <= 8\n        ORDER BY xmid, bsrq DESC\n    ) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n    GROUP BY t1.jsdw\n),\nbudget AS (\n    SELECT t1.jsdw, SUM(COALESCE(CAST(t3.xmje AS NUMERIC), 0)) AS v\n    FROM jcch_xm t1\n    LEFT JOIN (SELECT DISTINCT ON (xmid) xmid, xmje FROM jcch_jyljcchxm\n               ORDER BY xmid, bsrq DESC) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n    GROUP BY t1.jsdw\n)\nSELECT ROUND(COALESCE((SELECT SUM(v) FROM used   WHERE jsdw = '测绘院'), 0) * 100.0\n             / NULLIF((SELECT SUM(v) FROM budget WHERE jsdw = '测绘院'), 0), 2) AS zbz;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 155,
+      "source_cells": {
+        "name": "A155",
+        "code": "B155",
+        "unit": "C155",
+        "definition": "D155",
+        "sql": "E155",
+        "note": "F155"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_02_18",
+      "name": "本年度基础测绘项目资金执行率_技术中心",
+      "unit": "%",
+      "definition": "承担单位为技术中心的项目已使用资金 / 该项目预算总额×100%。",
+      "sql": "WITH used AS (\n    SELECT t1.jsdw,\n           SUM(COALESCE(CAST(NULLIF(REGEXP_REPLACE(t3.yzcje, '[^0-9.\\-]', '', 'g'), '') AS NUMERIC), 0)) AS v\n    FROM jcch_xm t1\n    LEFT JOIN (\n        SELECT DISTINCT ON (xmid) xmid, yzcje\n        FROM jcch_jyljcchxm\n        WHERE LEFT(bsrq, 4) = '2026'\n          AND CAST((regexp_match(bsrq, '^[0-9]{4}-([0-9]+)'))[1] AS INTEGER) <= 8\n        ORDER BY xmid, bsrq DESC\n    ) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n    GROUP BY t1.jsdw\n),\nbudget AS (\n    SELECT t1.jsdw, SUM(COALESCE(CAST(t3.xmje AS NUMERIC), 0)) AS v\n    FROM jcch_xm t1\n    LEFT JOIN (SELECT DISTINCT ON (xmid) xmid, xmje FROM jcch_jyljcchxm\n               ORDER BY xmid, bsrq DESC) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n    GROUP BY t1.jsdw\n)\nSELECT ROUND(COALESCE((SELECT SUM(v) FROM used   WHERE jsdw = '技术中心'), 0) * 100.0\n             / NULLIF((SELECT SUM(v) FROM budget WHERE jsdw = '技术中心'), 0), 2) AS zbz;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 156,
+      "source_cells": {
+        "name": "A156",
+        "code": "B156",
+        "unit": "C156",
+        "definition": "D156",
+        "sql": "E156",
+        "note": "F156"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_02_19",
+      "name": "本年度基础测绘项目资金执行率_地图院",
+      "unit": "%",
+      "definition": "承担单位为地图院的项目已使用资金 / 该项目预算总额×100%。",
+      "sql": "WITH used AS (\n    SELECT t1.jsdw,\n           SUM(COALESCE(CAST(NULLIF(REGEXP_REPLACE(t3.yzcje, '[^0-9.\\-]', '', 'g'), '') AS NUMERIC), 0)) AS v\n    FROM jcch_xm t1\n    LEFT JOIN (\n        SELECT DISTINCT ON (xmid) xmid, yzcje\n        FROM jcch_jyljcchxm\n        WHERE LEFT(bsrq, 4) = '2026'\n          AND CAST((regexp_match(bsrq, '^[0-9]{4}-([0-9]+)'))[1] AS INTEGER) <= 8\n        ORDER BY xmid, bsrq DESC\n    ) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n    GROUP BY t1.jsdw\n),\nbudget AS (\n    SELECT t1.jsdw, SUM(COALESCE(CAST(t3.xmje AS NUMERIC), 0)) AS v\n    FROM jcch_xm t1\n    LEFT JOIN (SELECT DISTINCT ON (xmid) xmid, xmje FROM jcch_jyljcchxm\n               ORDER BY xmid, bsrq DESC) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n    GROUP BY t1.jsdw\n)\nSELECT ROUND(COALESCE((SELECT SUM(v) FROM used   WHERE jsdw = '地图院'), 0) * 100.0\n             / NULLIF((SELECT SUM(v) FROM budget WHERE jsdw = '地图院'), 0), 2) AS zbz;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 157,
+      "source_cells": {
+        "name": "A157",
+        "code": "B157",
+        "unit": "C157",
+        "definition": "D157",
+        "sql": "E157",
+        "note": "F157"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_02_20",
+      "name": "本年度基础测绘项目资金执行率_质检中心",
+      "unit": "%",
+      "definition": "承担单位为质检中心的项目已使用资金 / 该项目预算总额×100%。",
+      "sql": "WITH used AS (\n    SELECT t1.jsdw,\n           SUM(COALESCE(CAST(NULLIF(REGEXP_REPLACE(t3.yzcje, '[^0-9.\\-]', '', 'g'), '') AS NUMERIC), 0)) AS v\n    FROM jcch_xm t1\n    LEFT JOIN (\n        SELECT DISTINCT ON (xmid) xmid, yzcje\n        FROM jcch_jyljcchxm\n        WHERE LEFT(bsrq, 4) = '2026'\n          AND CAST((regexp_match(bsrq, '^[0-9]{4}-([0-9]+)'))[1] AS INTEGER) <= 8\n        ORDER BY xmid, bsrq DESC\n    ) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n    GROUP BY t1.jsdw\n),\nbudget AS (\n    SELECT t1.jsdw, SUM(COALESCE(CAST(t3.xmje AS NUMERIC), 0)) AS v\n    FROM jcch_xm t1\n    LEFT JOIN (SELECT DISTINCT ON (xmid) xmid, xmje FROM jcch_jyljcchxm\n               ORDER BY xmid, bsrq DESC) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n    GROUP BY t1.jsdw\n)\nSELECT ROUND(COALESCE((SELECT SUM(v) FROM used   WHERE jsdw = '质检中心'), 0) * 100.0\n             / NULLIF((SELECT SUM(v) FROM budget WHERE jsdw = '质检中心'), 0), 2) AS zbz;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 158,
+      "source_cells": {
+        "name": "A158",
+        "code": "B158",
+        "unit": "C158",
+        "definition": "D158",
+        "sql": "E158",
+        "note": "F158"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_02_21",
+      "name": "本年度基础测绘项目资金执行率_档案馆",
+      "unit": "%",
+      "definition": "承担单位为档案馆的项目已使用资金 / 该项目预算总额×100%。",
+      "sql": "WITH used AS (\n    SELECT t1.jsdw,\n           SUM(COALESCE(CAST(NULLIF(REGEXP_REPLACE(t3.yzcje, '[^0-9.\\-]', '', 'g'), '') AS NUMERIC), 0)) AS v\n    FROM jcch_xm t1\n    LEFT JOIN (\n        SELECT DISTINCT ON (xmid) xmid, yzcje\n        FROM jcch_jyljcchxm\n        WHERE LEFT(bsrq, 4) = '2026'\n          AND CAST((regexp_match(bsrq, '^[0-9]{4}-([0-9]+)'))[1] AS INTEGER) <= 8\n        ORDER BY xmid, bsrq DESC\n    ) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n    GROUP BY t1.jsdw\n),\nbudget AS (\n    SELECT t1.jsdw, SUM(COALESCE(CAST(t3.xmje AS NUMERIC), 0)) AS v\n    FROM jcch_xm t1\n    LEFT JOIN (SELECT DISTINCT ON (xmid) xmid, xmje FROM jcch_jyljcchxm\n               ORDER BY xmid, bsrq DESC) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n    GROUP BY t1.jsdw\n)\nSELECT ROUND(COALESCE((SELECT SUM(v) FROM used   WHERE jsdw = '档案馆'), 0) * 100.0\n             / NULLIF((SELECT SUM(v) FROM budget WHERE jsdw = '档案馆'), 0), 2) AS zbz;",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 159,
+      "source_cells": {
+        "name": "A159",
+        "code": "B159",
+        "unit": "C159",
+        "definition": "D159",
+        "sql": "E159",
+        "note": "F159"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_03_01",
+      "name": "本年度基础测绘项目_实施中项目数量",
+      "unit": "个",
+      "definition": "2026 年度项目截至 2026 年 8 月末最新报送状态中，成果归档情况（cggdqk）为 0 或空（未验收未归档） 的项目数（全省）。",
+      "sql": "WITH latest AS (\n    SELECT t1.rid, t1.jsdw,\n           COALESCE(NULLIF(TRIM(t3.cggdqk), ''), '0') AS cggdqk\n    FROM jcch_xm t1\n    LEFT JOIN (\n        SELECT DISTINCT ON (xmid) xmid, cggdqk\n        FROM jcch_jyljcchxm\n        WHERE LEFT(bsrq, 4) = '2026'\n          AND CAST((regexp_match(bsrq, '^[0-9]{4}-([0-9]+)'))[1] AS INTEGER) <= 8\n        ORDER BY xmid, bsrq DESC\n    ) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n)\nSELECT COUNT(1) AS zbz\nFROM latest\nWHERE cggdqk NOT IN ('1', '3');",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 160,
+      "source_cells": {
+        "name": "A160",
+        "code": "B160",
+        "unit": "C160",
+        "definition": "D160",
+        "sql": "E160",
+        "note": "F160"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_03_02",
+      "name": "本年度基础测绘项目_已验收项目数量",
+      "unit": "个",
+      "definition": "2026 年度项目截至 2026 年 8 月末最新报送状态中，成果归档情况（cggdqk）为 1（已验收未归档） 的项目数（全省）。",
+      "sql": "WITH latest AS (\n    SELECT t1.rid, t1.jsdw,\n           COALESCE(NULLIF(TRIM(t3.cggdqk), ''), '0') AS cggdqk\n    FROM jcch_xm t1\n    LEFT JOIN (\n        SELECT DISTINCT ON (xmid) xmid, cggdqk\n        FROM jcch_jyljcchxm\n        WHERE LEFT(bsrq, 4) = '2026'\n          AND CAST((regexp_match(bsrq, '^[0-9]{4}-([0-9]+)'))[1] AS INTEGER) <= 8\n        ORDER BY xmid, bsrq DESC\n    ) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n)\nSELECT COUNT(1) AS zbz\nFROM latest\nWHERE cggdqk = '1';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 161,
+      "source_cells": {
+        "name": "A161",
+        "code": "B161",
+        "unit": "C161",
+        "definition": "D161",
+        "sql": "E161",
+        "note": "F161"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_03_03",
+      "name": "本年度基础测绘项目_已归档项目数量",
+      "unit": "个",
+      "definition": "2026 年度项目截至 2026 年 8 月末最新报送状态中，成果归档情况（cggdqk）为 3（已归档） 的项目数（全省）。",
+      "sql": "WITH latest AS (\n    SELECT t1.rid, t1.jsdw,\n           COALESCE(NULLIF(TRIM(t3.cggdqk), ''), '0') AS cggdqk\n    FROM jcch_xm t1\n    LEFT JOIN (\n        SELECT DISTINCT ON (xmid) xmid, cggdqk\n        FROM jcch_jyljcchxm\n        WHERE LEFT(bsrq, 4) = '2026'\n          AND CAST((regexp_match(bsrq, '^[0-9]{4}-([0-9]+)'))[1] AS INTEGER) <= 8\n        ORDER BY xmid, bsrq DESC\n    ) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n)\nSELECT COUNT(1) AS zbz\nFROM latest\nWHERE cggdqk = '3';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 162,
+      "source_cells": {
+        "name": "A162",
+        "code": "B162",
+        "unit": "C162",
+        "definition": "D162",
+        "sql": "E162",
+        "note": "F162"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_03_04",
+      "name": "本年度基础测绘项目_实施中项目数量_测绘院",
+      "unit": "个",
+      "definition": "2026 年度项目截至 2026 年 8 月末最新状态为实施中、且承担单位为测绘院的项目数。",
+      "sql": "WITH latest AS (\n    SELECT t1.rid, t1.jsdw,\n           COALESCE(NULLIF(TRIM(t3.cggdqk), ''), '0') AS cggdqk\n    FROM jcch_xm t1\n    LEFT JOIN (\n        SELECT DISTINCT ON (xmid) xmid, cggdqk\n        FROM jcch_jyljcchxm\n        WHERE LEFT(bsrq, 4) = '2026'\n          AND CAST((regexp_match(bsrq, '^[0-9]{4}-([0-9]+)'))[1] AS INTEGER) <= 8\n        ORDER BY xmid, bsrq DESC\n    ) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n)\nSELECT COUNT(1) AS zbz\nFROM latest\nWHERE cggdqk NOT IN ('1', '3')\n  AND jsdw = '测绘院';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 163,
+      "source_cells": {
+        "name": "A163",
+        "code": "B163",
+        "unit": "C163",
+        "definition": "D163",
+        "sql": "E163",
+        "note": "F163"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_03_05",
+      "name": "本年度基础测绘项目_实施中项目数量_技术中心",
+      "unit": "个",
+      "definition": "2026 年度项目截至 2026 年 8 月末最新状态为实施中、且承担单位为技术中心的项目数。",
+      "sql": "WITH latest AS (\n    SELECT t1.rid, t1.jsdw,\n           COALESCE(NULLIF(TRIM(t3.cggdqk), ''), '0') AS cggdqk\n    FROM jcch_xm t1\n    LEFT JOIN (\n        SELECT DISTINCT ON (xmid) xmid, cggdqk\n        FROM jcch_jyljcchxm\n        WHERE LEFT(bsrq, 4) = '2026'\n          AND CAST((regexp_match(bsrq, '^[0-9]{4}-([0-9]+)'))[1] AS INTEGER) <= 8\n        ORDER BY xmid, bsrq DESC\n    ) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n)\nSELECT COUNT(1) AS zbz\nFROM latest\nWHERE cggdqk NOT IN ('1', '3')\n  AND jsdw = '技术中心';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 164,
+      "source_cells": {
+        "name": "A164",
+        "code": "B164",
+        "unit": "C164",
+        "definition": "D164",
+        "sql": "E164",
+        "note": "F164"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_03_06",
+      "name": "本年度基础测绘项目_实施中项目数量_地图院",
+      "unit": "个",
+      "definition": "2026 年度项目截至 2026 年 8 月末最新状态为实施中、且承担单位为地图院的项目数。",
+      "sql": "WITH latest AS (\n    SELECT t1.rid, t1.jsdw,\n           COALESCE(NULLIF(TRIM(t3.cggdqk), ''), '0') AS cggdqk\n    FROM jcch_xm t1\n    LEFT JOIN (\n        SELECT DISTINCT ON (xmid) xmid, cggdqk\n        FROM jcch_jyljcchxm\n        WHERE LEFT(bsrq, 4) = '2026'\n          AND CAST((regexp_match(bsrq, '^[0-9]{4}-([0-9]+)'))[1] AS INTEGER) <= 8\n        ORDER BY xmid, bsrq DESC\n    ) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n)\nSELECT COUNT(1) AS zbz\nFROM latest\nWHERE cggdqk NOT IN ('1', '3')\n  AND jsdw = '地图院';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 165,
+      "source_cells": {
+        "name": "A165",
+        "code": "B165",
+        "unit": "C165",
+        "definition": "D165",
+        "sql": "E165",
+        "note": "F165"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_03_07",
+      "name": "本年度基础测绘项目_实施中项目数量_质检中心",
+      "unit": "个",
+      "definition": "2026 年度项目截至 2026 年 8 月末最新状态为实施中、且承担单位为质检中心的项目数。",
+      "sql": "WITH latest AS (\n    SELECT t1.rid, t1.jsdw,\n           COALESCE(NULLIF(TRIM(t3.cggdqk), ''), '0') AS cggdqk\n    FROM jcch_xm t1\n    LEFT JOIN (\n        SELECT DISTINCT ON (xmid) xmid, cggdqk\n        FROM jcch_jyljcchxm\n        WHERE LEFT(bsrq, 4) = '2026'\n          AND CAST((regexp_match(bsrq, '^[0-9]{4}-([0-9]+)'))[1] AS INTEGER) <= 8\n        ORDER BY xmid, bsrq DESC\n    ) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n)\nSELECT COUNT(1) AS zbz\nFROM latest\nWHERE cggdqk NOT IN ('1', '3')\n  AND jsdw = '质检中心';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 166,
+      "source_cells": {
+        "name": "A166",
+        "code": "B166",
+        "unit": "C166",
+        "definition": "D166",
+        "sql": "E166",
+        "note": "F166"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_03_08",
+      "name": "本年度基础测绘项目_实施中项目数量_档案馆",
+      "unit": "个",
+      "definition": "2026 年度项目截至 2026 年 8 月末最新状态为实施中、且承担单位为档案馆的项目数。",
+      "sql": "WITH latest AS (\n    SELECT t1.rid, t1.jsdw,\n           COALESCE(NULLIF(TRIM(t3.cggdqk), ''), '0') AS cggdqk\n    FROM jcch_xm t1\n    LEFT JOIN (\n        SELECT DISTINCT ON (xmid) xmid, cggdqk\n        FROM jcch_jyljcchxm\n        WHERE LEFT(bsrq, 4) = '2026'\n          AND CAST((regexp_match(bsrq, '^[0-9]{4}-([0-9]+)'))[1] AS INTEGER) <= 8\n        ORDER BY xmid, bsrq DESC\n    ) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n)\nSELECT COUNT(1) AS zbz\nFROM latest\nWHERE cggdqk NOT IN ('1', '3')\n  AND jsdw = '档案馆';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 167,
+      "source_cells": {
+        "name": "A167",
+        "code": "B167",
+        "unit": "C167",
+        "definition": "D167",
+        "sql": "E167",
+        "note": "F167"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_03_09",
+      "name": "本年度基础测绘项目_已验收项目数量_测绘院",
+      "unit": "个",
+      "definition": "2026 年度项目截至 2026 年 8 月末最新状态为已验收、且承担单位为测绘院的项目数。",
+      "sql": "WITH latest AS (\n    SELECT t1.rid, t1.jsdw,\n           COALESCE(NULLIF(TRIM(t3.cggdqk), ''), '0') AS cggdqk\n    FROM jcch_xm t1\n    LEFT JOIN (\n        SELECT DISTINCT ON (xmid) xmid, cggdqk\n        FROM jcch_jyljcchxm\n        WHERE LEFT(bsrq, 4) = '2026'\n          AND CAST((regexp_match(bsrq, '^[0-9]{4}-([0-9]+)'))[1] AS INTEGER) <= 8\n        ORDER BY xmid, bsrq DESC\n    ) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n)\nSELECT COUNT(1) AS zbz\nFROM latest\nWHERE cggdqk = '1'\n  AND jsdw = '测绘院';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 168,
+      "source_cells": {
+        "name": "A168",
+        "code": "B168",
+        "unit": "C168",
+        "definition": "D168",
+        "sql": "E168",
+        "note": "F168"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_03_10",
+      "name": "本年度基础测绘项目_已验收项目数量_技术中心",
+      "unit": "个",
+      "definition": "2026 年度项目截至 2026 年 8 月末最新状态为已验收、且承担单位为技术中心的项目数。",
+      "sql": "WITH latest AS (\n    SELECT t1.rid, t1.jsdw,\n           COALESCE(NULLIF(TRIM(t3.cggdqk), ''), '0') AS cggdqk\n    FROM jcch_xm t1\n    LEFT JOIN (\n        SELECT DISTINCT ON (xmid) xmid, cggdqk\n        FROM jcch_jyljcchxm\n        WHERE LEFT(bsrq, 4) = '2026'\n          AND CAST((regexp_match(bsrq, '^[0-9]{4}-([0-9]+)'))[1] AS INTEGER) <= 8\n        ORDER BY xmid, bsrq DESC\n    ) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n)\nSELECT COUNT(1) AS zbz\nFROM latest\nWHERE cggdqk = '1'\n  AND jsdw = '技术中心';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 169,
+      "source_cells": {
+        "name": "A169",
+        "code": "B169",
+        "unit": "C169",
+        "definition": "D169",
+        "sql": "E169",
+        "note": "F169"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_03_11",
+      "name": "本年度基础测绘项目_已验收项目数量_地图院",
+      "unit": "个",
+      "definition": "2026 年度项目截至 2026 年 8 月末最新状态为已验收、且承担单位为地图院的项目数。",
+      "sql": "WITH latest AS (\n    SELECT t1.rid, t1.jsdw,\n           COALESCE(NULLIF(TRIM(t3.cggdqk), ''), '0') AS cggdqk\n    FROM jcch_xm t1\n    LEFT JOIN (\n        SELECT DISTINCT ON (xmid) xmid, cggdqk\n        FROM jcch_jyljcchxm\n        WHERE LEFT(bsrq, 4) = '2026'\n          AND CAST((regexp_match(bsrq, '^[0-9]{4}-([0-9]+)'))[1] AS INTEGER) <= 8\n        ORDER BY xmid, bsrq DESC\n    ) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n)\nSELECT COUNT(1) AS zbz\nFROM latest\nWHERE cggdqk = '1'\n  AND jsdw = '地图院';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 170,
+      "source_cells": {
+        "name": "A170",
+        "code": "B170",
+        "unit": "C170",
+        "definition": "D170",
+        "sql": "E170",
+        "note": "F170"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_03_12",
+      "name": "本年度基础测绘项目_已验收项目数量_质检中心",
+      "unit": "个",
+      "definition": "2026 年度项目截至 2026 年 8 月末最新状态为已验收、且承担单位为质检中心的项目数。",
+      "sql": "WITH latest AS (\n    SELECT t1.rid, t1.jsdw,\n           COALESCE(NULLIF(TRIM(t3.cggdqk), ''), '0') AS cggdqk\n    FROM jcch_xm t1\n    LEFT JOIN (\n        SELECT DISTINCT ON (xmid) xmid, cggdqk\n        FROM jcch_jyljcchxm\n        WHERE LEFT(bsrq, 4) = '2026'\n          AND CAST((regexp_match(bsrq, '^[0-9]{4}-([0-9]+)'))[1] AS INTEGER) <= 8\n        ORDER BY xmid, bsrq DESC\n    ) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n)\nSELECT COUNT(1) AS zbz\nFROM latest\nWHERE cggdqk = '1'\n  AND jsdw = '质检中心';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 171,
+      "source_cells": {
+        "name": "A171",
+        "code": "B171",
+        "unit": "C171",
+        "definition": "D171",
+        "sql": "E171",
+        "note": "F171"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_03_13",
+      "name": "本年度基础测绘项目_已验收项目数量_档案馆",
+      "unit": "个",
+      "definition": "2026 年度项目截至 2026 年 8 月末最新状态为已验收、且承担单位为档案馆的项目数。",
+      "sql": "WITH latest AS (\n    SELECT t1.rid, t1.jsdw,\n           COALESCE(NULLIF(TRIM(t3.cggdqk), ''), '0') AS cggdqk\n    FROM jcch_xm t1\n    LEFT JOIN (\n        SELECT DISTINCT ON (xmid) xmid, cggdqk\n        FROM jcch_jyljcchxm\n        WHERE LEFT(bsrq, 4) = '2026'\n          AND CAST((regexp_match(bsrq, '^[0-9]{4}-([0-9]+)'))[1] AS INTEGER) <= 8\n        ORDER BY xmid, bsrq DESC\n    ) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n)\nSELECT COUNT(1) AS zbz\nFROM latest\nWHERE cggdqk = '1'\n  AND jsdw = '档案馆';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 172,
+      "source_cells": {
+        "name": "A172",
+        "code": "B172",
+        "unit": "C172",
+        "definition": "D172",
+        "sql": "E172",
+        "note": "F172"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_03_14",
+      "name": "本年度基础测绘项目_已归档项目数量_测绘院",
+      "unit": "个",
+      "definition": "2026 年度项目截至 2026 年 8 月末最新状态为已归档、且承担单位为测绘院的项目数。",
+      "sql": "WITH latest AS (\n    SELECT t1.rid, t1.jsdw,\n           COALESCE(NULLIF(TRIM(t3.cggdqk), ''), '0') AS cggdqk\n    FROM jcch_xm t1\n    LEFT JOIN (\n        SELECT DISTINCT ON (xmid) xmid, cggdqk\n        FROM jcch_jyljcchxm\n        WHERE LEFT(bsrq, 4) = '2026'\n          AND CAST((regexp_match(bsrq, '^[0-9]{4}-([0-9]+)'))[1] AS INTEGER) <= 8\n        ORDER BY xmid, bsrq DESC\n    ) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n)\nSELECT COUNT(1) AS zbz\nFROM latest\nWHERE cggdqk = '3'\n  AND jsdw = '测绘院';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 173,
+      "source_cells": {
+        "name": "A173",
+        "code": "B173",
+        "unit": "C173",
+        "definition": "D173",
+        "sql": "E173",
+        "note": "F173"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_03_15",
+      "name": "本年度基础测绘项目_已归档项目数量_技术中心",
+      "unit": "个",
+      "definition": "2026 年度项目截至 2026 年 8 月末最新状态为已归档、且承担单位为技术中心的项目数。",
+      "sql": "WITH latest AS (\n    SELECT t1.rid, t1.jsdw,\n           COALESCE(NULLIF(TRIM(t3.cggdqk), ''), '0') AS cggdqk\n    FROM jcch_xm t1\n    LEFT JOIN (\n        SELECT DISTINCT ON (xmid) xmid, cggdqk\n        FROM jcch_jyljcchxm\n        WHERE LEFT(bsrq, 4) = '2026'\n          AND CAST((regexp_match(bsrq, '^[0-9]{4}-([0-9]+)'))[1] AS INTEGER) <= 8\n        ORDER BY xmid, bsrq DESC\n    ) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n)\nSELECT COUNT(1) AS zbz\nFROM latest\nWHERE cggdqk = '3'\n  AND jsdw = '技术中心';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 174,
+      "source_cells": {
+        "name": "A174",
+        "code": "B174",
+        "unit": "C174",
+        "definition": "D174",
+        "sql": "E174",
+        "note": "F174"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_03_16",
+      "name": "本年度基础测绘项目_已归档项目数量_地图院",
+      "unit": "个",
+      "definition": "2026 年度项目截至 2026 年 8 月末最新状态为已归档、且承担单位为地图院的项目数。",
+      "sql": "WITH latest AS (\n    SELECT t1.rid, t1.jsdw,\n           COALESCE(NULLIF(TRIM(t3.cggdqk), ''), '0') AS cggdqk\n    FROM jcch_xm t1\n    LEFT JOIN (\n        SELECT DISTINCT ON (xmid) xmid, cggdqk\n        FROM jcch_jyljcchxm\n        WHERE LEFT(bsrq, 4) = '2026'\n          AND CAST((regexp_match(bsrq, '^[0-9]{4}-([0-9]+)'))[1] AS INTEGER) <= 8\n        ORDER BY xmid, bsrq DESC\n    ) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n)\nSELECT COUNT(1) AS zbz\nFROM latest\nWHERE cggdqk = '3'\n  AND jsdw = '地图院';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 175,
+      "source_cells": {
+        "name": "A175",
+        "code": "B175",
+        "unit": "C175",
+        "definition": "D175",
+        "sql": "E175",
+        "note": "F175"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_03_17",
+      "name": "本年度基础测绘项目_已归档项目数量_质检中心",
+      "unit": "个",
+      "definition": "2026 年度项目截至 2026 年 8 月末最新状态为已归档、且承担单位为质检中心的项目数。",
+      "sql": "WITH latest AS (\n    SELECT t1.rid, t1.jsdw,\n           COALESCE(NULLIF(TRIM(t3.cggdqk), ''), '0') AS cggdqk\n    FROM jcch_xm t1\n    LEFT JOIN (\n        SELECT DISTINCT ON (xmid) xmid, cggdqk\n        FROM jcch_jyljcchxm\n        WHERE LEFT(bsrq, 4) = '2026'\n          AND CAST((regexp_match(bsrq, '^[0-9]{4}-([0-9]+)'))[1] AS INTEGER) <= 8\n        ORDER BY xmid, bsrq DESC\n    ) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n)\nSELECT COUNT(1) AS zbz\nFROM latest\nWHERE cggdqk = '3'\n  AND jsdw = '质检中心';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 176,
+      "source_cells": {
+        "name": "A176",
+        "code": "B176",
+        "unit": "C176",
+        "definition": "D176",
+        "sql": "E176",
+        "note": "F176"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    },
+    {
+      "code": "JCCH_03_18",
+      "name": "本年度基础测绘项目_已归档项目数量_档案馆",
+      "unit": "个",
+      "definition": "2026 年度项目截至 2026 年 8 月末最新状态为已归档、且承担单位为档案馆的项目数。",
+      "sql": "WITH latest AS (\n    SELECT t1.rid, t1.jsdw,\n           COALESCE(NULLIF(TRIM(t3.cggdqk), ''), '0') AS cggdqk\n    FROM jcch_xm t1\n    LEFT JOIN (\n        SELECT DISTINCT ON (xmid) xmid, cggdqk\n        FROM jcch_jyljcchxm\n        WHERE LEFT(bsrq, 4) = '2026'\n          AND CAST((regexp_match(bsrq, '^[0-9]{4}-([0-9]+)'))[1] AS INTEGER) <= 8\n        ORDER BY xmid, bsrq DESC\n    ) t3 ON t3.xmid = t1.rid\n    WHERE t1.nd = '2026'\n      AND t1.jsdw IN ('测绘院', '技术中心', '地图院', '档案馆', '质检中心')\n)\nSELECT COUNT(1) AS zbz\nFROM latest\nWHERE cggdqk = '3'\n  AND jsdw = '档案馆';",
+      "source_note": null,
+      "source_sheet": "二级指标SQL示例",
+      "source_row": 177,
+      "source_cells": {
+        "name": "A177",
+        "code": "B177",
+        "unit": "C177",
+        "definition": "D177",
+        "sql": "E177",
+        "note": "F177"
+      },
+      "tables": [
+        "jcch_jyljcchxm",
+        "jcch_xm"
+      ],
+      "availability": "supported"
+    }
+  ],
+  "physical_columns_referenced_by_sql": {
+    "ch_zbzb": [
+      "tjqy_id",
+      "tjsj",
+      "zbx_id",
+      "zbz"
+    ],
+    "jcch_jyljcchxm": [
+      "bsrq",
+      "cggdqk",
+      "xmid",
+      "xmje",
+      "yzcje"
+    ],
+    "jcch_xm": [
+      "jsdw",
+      "nd",
+      "rid"
+    ],
+    "proj_basemapping": [
+      "cddw",
+      "xmnd",
+      "ysje"
+    ],
+    "proj_up_surveydata": [
+      "szqy",
+      "yxqjsrq"
+    ],
+    "proj_zzdwsq": [
+      "slrq",
+      "xmmc"
+    ],
+    "proj_zzry": [
+      "shzt",
+      "ssdw",
+      "zyjsrylb"
+    ],
+    "xxzy_cgspb": [
+      "cgyyly",
+      "pzsj",
+      "sfsc",
+      "sqdw",
+      "sxmc",
+      "szds",
+      "szqy",
+      "szsf",
+      "zsbh"
+    ],
+    "xxzy_dtshb": [
+      "dtxs",
+      "pzsj",
+      "sxmc",
+      "ywfsd"
+    ],
+    "xxzy_qschzzdwb": [
+      "sqdw",
+      "sqdwzzdj",
+      "szds",
+      "zylb"
+    ]
+  }
+}

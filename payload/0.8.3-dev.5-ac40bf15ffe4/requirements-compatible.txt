@@ -1,0 +1,14 @@
+# Existing 0.7.4 environments: direct engine contracts, not an install lock.
+# Do not feed this file to pip. New installations still use hash-locked requirements.txt.
+fastapi>=0.112.4,<1
+starlette>=0.38.6,<2
+uvicorn>=0.52.4,<1
+pydantic>=2.13.5,<3
+SQLAlchemy>=2.0.28,<3
+sqlglot==26.33.0
+psycopg2-binary>=2.9.12,<3
+PyMySQL>=1.2.0,<2
+numpy>=2.2.6,<3
+scipy>=1.14.1,<2
+statsmodels>=0.14.4,<1
+pandas>=2.2.3,<3
