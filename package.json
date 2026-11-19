@@ -1,0 +1,82 @@
+{
+  "name": "@natural-work/ask-data",
+  "version": "0.8.3-dev.5",
+  "type": "module",
+  "description": "智能问数（测绘版）：数据源、业务项目、只读查询、分析方法与回答内图表",
+  "main": "./payload/0.8.3-dev.5-ac40bf15ffe4/index.js",
+  "exports": {
+    ".": "./payload/0.8.3-dev.5-ac40bf15ffe4/index.js",
+    "./client": "./payload/0.8.3-dev.5-ac40bf15ffe4/client.js",
+    "./capabilities": "./payload/0.8.3-dev.5-ac40bf15ffe4/packages/natural-capabilities/index.js",
+    "./context-budget": "./payload/0.8.3-dev.5-ac40bf15ffe4/packages/natural-data/context-budget.js",
+    "./unavailable": "./payload/0.8.3-dev.5-ac40bf15ffe4/unavailable.js",
+    "./package.json": "./package.json",
+    "./cordis.patch.yml": "./payload/0.8.3-dev.5-ac40bf15ffe4/cordis.patch.yml",
+    "./locale/*.json": "./payload/0.8.3-dev.5-ac40bf15ffe4/locale/*.json"
+  },
+  "files": [
+    "payload",
+    "packages",
+    "unavailable.js",
+    "README.md",
+    "DEPLOYMENT.md",
+    "SECURITY.md",
+    "CHANGELOG.md",
+    "VERIFICATION.md",
+    "LICENSE",
+    "THIRD_PARTY_LICENSE.txt",
+    "build-info.json",
+    "requirements.txt",
+    "requirements.in",
+    "requirements-compatible.txt",
+    "setup.py",
+    "check_runtime.py",
+    "selftest.py"
+  ],
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh": ">=0.1.7-rc.1 <=0.2.0-rc.2 || 0.2.1-alpha.2 || 0.2.1-alpha.3",
+    "@deepseek-ai/dsh-agent-preset": ">=0.1.7-rc.1 <=0.2.0-rc.2 || 0.2.1-alpha.2 || 0.2.1-alpha.3",
+    "@deepseek-ai/dsh-home-paths": ">=0.1.7-rc.1 <=0.2.0-rc.2 || 0.2.1-alpha.2 || 0.2.1-alpha.3",
+    "@deepseek-ai/dsh-tools": ">=0.1.7-rc.1 <=0.2.0-rc.2 || 0.2.1-alpha.2 || 0.2.1-alpha.3",
+    "@deepseek-ai/dsh-llm": ">=0.1.7-rc.1 <=0.2.0-rc.2 || 0.2.1-alpha.2 || 0.2.1-alpha.3"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/dsh": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-agent-preset": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-home-paths": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-tools": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-llm": {
+      "optional": true
+    }
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./payload/0.8.3-dev.5-ac40bf15ffe4/cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-renderer",
+        "@deepseek-ai/dsh-client-ui-sidebar",
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-ui-settings-general",
+        "@deepseek-ai/dsh-client-ui-primitives",
+        "@deepseek-ai/dsh-client-ui-chat"
+      ],
+      "platform": "web"
+    }
+  },
+  "license": "MIT"
+}
